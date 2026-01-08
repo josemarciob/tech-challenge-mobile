@@ -1,32 +1,63 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Button, ActivityIndicator } from 'react-native';
 import { api } from '../services/api';
+import { useFocusEffect } from '@react-navigation/native';
 
-type Post = { id: string; title: string; author: string; description: string };
+type Post = { 
+    id: string; 
+    title: string; 
+    authorName: string; 
+    content: string 
+};
 
 export default function PostsList({ navigation }: any) {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    api.get('/posts').then(res => setPosts(res.data));
-  }, []);
+  const fetchPosts = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/posts');
+      setPosts(res.data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // recarrega sempre que a tela volta ao foco
+  useFocusEffect(
+    useCallback(() => {
+      fetchPosts();
+    }, [])
+  );
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Atividades</Text>
-      <FlatList
-        data={posts}
-        keyExtractor={(item) => String(item.id)} 
-        renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => navigation.navigate('PostDetail', { id: item.id })}>
-            <View style={styles.card}>
-              <Text style={styles.postTitle}>{item.title}</Text>
-              <Text>{item.author}</Text>
-              <Text>{item.description}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-      />
+
+      {/* Botão para criar novo post */}
+      <Button title="Novo Post" onPress={() => navigation.navigate('CriarAtividade')} />
+
+
+      {loading ? (
+        <ActivityIndicator size="large" />
+      ) : (
+        <FlatList
+          data={posts}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => navigation.navigate('DetalhesAtividade', { id: item.id })}>
+              <View style={styles.card}>
+                <Text style={styles.postTitle}>{item.title}</Text>
+                <Text>{item.authorName}</Text>
+                <Text>{item.content}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        />
+      )}
     </View>
   );
 }
