@@ -16,7 +16,7 @@ export default function PostDetail({ route }: any) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get(`/posts/${id}`)
+    api.get(`/atividades/${id}`)
       .then(res => setPost(res.data))
       .catch(err => console.log(err))
       .finally(() => setLoading(false));

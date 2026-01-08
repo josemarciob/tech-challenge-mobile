@@ -13,14 +13,17 @@ export default function LoginScreen({ navigation }: any) {
   const { login } = useAuth();
 
   const onSubmit = async (data: FormData) => {
-    try {
-      await login(data.email, data.password);
-      navigation.replace('Posts'); 
-    } catch (err) {
-      console.log(err);
-      alert('Error ao fazer login. Verifique suas credenciais.');
-    }
-  };
+  console.log("Tentando login com:", data);
+  try {
+    await login(data.email, data.password);
+    console.log("Login OK, indo para Atividades...");
+    navigation.replace('Atividades');
+  } catch (err) {
+    console.error("Erro no login:", err);
+    alert('Error ao fazer login. Verifique suas credenciais.');
+  }
+};
+
 
   return (
     <View style={styles.container}>
