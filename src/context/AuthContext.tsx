@@ -1,31 +1,41 @@
-import React, { createContext, useContext, useState } from 'react'
-import { api, setAuthToken } from '../services/api'
+import React, { createContext, useContext, useState } from "react";
+import { api, setAuthToken } from "../services/api";
 
-type User = { id: string; name: string; role: 'professor' | 'aluno' };
+type User = { id: string; name: string; role: "professor" | "estudante", email: string };
 
 type AuthContextType = {
-  user?: User;
-  token?: string;
+  user: User | null;
+  token: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 };
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User>();
-  const [token, setToken] = useState<string>();
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
   const login = async (email: string, password: string) => {
-    const { data } = await api.post('/auth/login', { email, password });
+  const { data } = await api.post("/auth/login", { email, password });
+  console.log("Resposta do backend:", data);
+
     setToken(data.token);
     setAuthToken(data.token);
-    setUser(data.user);
+
+    // ajuste: monta o objeto user corretamente
+    setUser({
+      id: String(data.user?.id || data.id),
+      name: data.user?.name || data.name,
+      role: data.user?.role || data.role,
+      email: data.user?.email || data.email,
+    });
   };
 
+
   const logout = () => {
-    setUser(undefined);
-    setToken(undefined);
+    setUser(null);
+    setToken(null);
     setAuthToken(undefined);
   };
 
@@ -36,4 +46,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth deve ser usado dentro de AuthProvider");
+  }
+  return context;
+};
