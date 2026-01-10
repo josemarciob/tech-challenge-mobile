@@ -83,7 +83,9 @@ node server.js
 
 Esses desafios ajudaram a consolidar boas práticas de desenvolvimento e reforçaram a importância da padronização.
 
-👨‍💻 Autor
-Projeto desenvolvido por José Márcio como parte do Tech Challenge da FIAP.
+---
+
+### 👨‍💻 Autor
+Projeto desenvolvido por **José Márcio** como parte do **Tech Challenge da FIAP**.
 
 ---
