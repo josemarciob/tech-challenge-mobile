@@ -43,7 +43,22 @@ app.post("/auth/register", (req, res) => {
 });
 
 // listar todos os usuários
-app.get("/users", (req, res) => res.json(users));
+app.get("/users", (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const startIndex = (page - 1) * limit;
+  const endIndex = page * limit;
+
+  const results = users.slice(startIndex, endIndex);
+
+  res.json({
+    page,
+    limit,
+    total: users.length,
+    data: results,
+  });
+});
+
 
 // Login
 app.post("/auth/login", (req, res) => {
@@ -61,7 +76,23 @@ app.post("/auth/login", (req, res) => {
 });
 
 // Listar posts
-app.get("/posts", (req, res) => res.json(posts));
+// Listar posts com paginação
+app.get("/posts", (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 5;
+  const startIndex = (page - 1) * limit;
+  const endIndex = page * limit;
+
+  const results = posts.slice(startIndex, endIndex);
+
+  res.json({
+    page,
+    limit,
+    total: posts.length,
+    data: results,
+  });
+});
+
 
 // Criar post (somente professor)
 app.post("/posts", (req, res) => {
@@ -114,6 +145,7 @@ app.delete("/posts/:id", (req, res) => {
 
   const deleted = posts.splice(postIndex, 1);
   comments = comments.filter(c => c.postId != id);
+  saveComments();
 
   res.json({ message: "Post e comentários excluídos com sucesso", post: deleted[0] });
 });
@@ -121,7 +153,7 @@ app.delete("/posts/:id", (req, res) => {
 // Detalhes de post
 app.get("/posts/:id", (req, res) => {
   const post = posts.find(p => p.id == req.params.id);
-  if (!post) return res.status(404).json({ error: "Atividade não encontrada" });
+  if (!post) return res.status(404).json({ error: "Post não encontrado" });
   res.json(post);
 });
 
@@ -150,7 +182,26 @@ app.get("/atividades/:id", (req, res) => {
   res.json(atividade);
 });
 
-// Criar comentário
+// Excluir atividade
+app.delete("/atividades/:id", (req, res) => {
+  const { id } = req.params;
+  const { authorId } = req.body;
+  const user = users.find(u => u.id == authorId);
+
+  if (!user) return res.status(400).json({ error: "Autor inválido" });
+  if (user.role !== "professor") return res.status(403).json({ error: "Somente professores podem excluir atividades" });
+
+  const atividadeIndex = atividades.findIndex(a => a.id == id);
+  if (atividadeIndex === -1) return res.status(404).json({ error: "Atividade não encontrada" });
+
+  const deleted = atividades.splice(atividadeIndex, 1);
+  comments = comments.filter(c => c.atividadeId != id);
+  saveComments();
+
+  res.json({ message: "Atividade e comentários excluídos com sucesso", atividade: deleted[0] });
+});
+
+// Criar comentário em post
 app.post("/posts/:id/comments", (req, res) => {
   const { id } = req.params;
   const { author, content } = req.body;
@@ -158,6 +209,7 @@ app.post("/posts/:id/comments", (req, res) => {
   const comment = {
     id: comments.length + 1,
     postId: id,
+    atividadeId: null,
     author,
     content,
     createdAt: new Date(),
@@ -175,27 +227,30 @@ app.get("/posts/:id/comments", (req, res) => {
   res.json(postComments);
 });
 
-// Atualizar usuário
-app.put("/users/:id", (req, res) => {
+// Criar comentário em atividade
+app.post("/atividades/:id/comments", (req, res) => {
   const { id } = req.params;
-  const { name, email, role } = req.body;
+  const { author, content } = req.body;
 
-  const userIndex = users.findIndex(u => u.id == id);
-  if (userIndex === -1) return res.status(404).json({ error: "Usuário não encontrado" });
+  const comment = {
+    id: comments.length + 1,
+    postId: null,
+    atividadeId: id,
+    author,
+    content,
+    createdAt: new Date(),
+  };
 
-  users[userIndex] = { ...users[userIndex], name, email, role };
-  res.json(users[userIndex]);
+  comments.push(comment);
+  saveComments();
+  res.json(comment);
 });
 
-// Deletar usuário
-app.delete("/users/:id", (req, res) => {
-  const { id } = req.params;
-  const userIndex = users.findIndex(u => u.id == id);
-
-  if (userIndex === -1) return res.status(404).json({ error: "Usuário não encontrado" });
-
-  users.splice(userIndex, 1);
-  res.json({ success: true });
+// Listar comentários de uma atividade 
+app.get("/atividades/:id/comments", (req, res) => { 
+    const atividadeId = req.params.id;
+    const atividadeComments = comments.filter(c => c.atividadeId == atividadeId); 
+    res.json(atividadeComments); 
 });
 
 app.listen(3000, () => console.log("Backend rodando na porta 3000"));

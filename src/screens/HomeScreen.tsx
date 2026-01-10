@@ -1,20 +1,22 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 
 export default function HomeScreen({ navigation }: any) {
   const { user, logout } = useAuth();
+  const insets = useSafeAreaInsets(); // pega os espaços seguros do dispositivo
 
   if (!user) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <Text style={styles.loading}>Carregando usuário...</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Cabeçalho */}
       <View style={styles.header}>
         <Text style={styles.welcome}>Bem-vindo 👋</Text>
@@ -78,20 +80,20 @@ export default function HomeScreen({ navigation }: any) {
 
       {/* Botão de sair */}
       <TouchableOpacity
-        style={styles.logoutButton}
+        style={[styles.logoutButton, { marginBottom: insets.bottom }]} // respeita área segura
         onPress={() => {
-          logout(); // limpa usuário e token
-          navigation.replace("Login"); // redireciona para tela de login
+          logout();
+          navigation.replace("Login");
         }}
       >
         <Text style={styles.logoutText}>🚪 Sair</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f7fa", padding: 20 },
+  container: { flex: 1, backgroundColor: "#f5f7fa", paddingBottom: 12, paddingLeft: 16, paddingRight: 16 },
   header: { alignItems: "center", marginBottom: 20 },
   welcome: { fontSize: 20, fontWeight: "bold", color: "#006eff" },
   name: { fontSize: 22, fontWeight: "bold", marginTop: 6, color: "#333" },
@@ -99,7 +101,7 @@ const styles = StyleSheet.create({
   panel: { flex: 1, gap: 12 },
   card: {
     backgroundColor: "#fff",
-    padding: 16,
+    padding: 20,
     borderRadius: 12,
     shadowColor: "#000",
     shadowOpacity: 0.1,

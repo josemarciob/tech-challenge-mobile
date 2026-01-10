@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Button } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../services/api";
 import { useFocusEffect } from "@react-navigation/native";
@@ -7,21 +8,25 @@ import { useFocusEffect } from "@react-navigation/native";
 export default function PostsList({ navigation }: any) {
   const { user } = useAuth();
   const [posts, setPosts] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 5;
+  const insets = useSafeAreaInsets(); // pega os espaços seguros
 
   const fetchPosts = async () => {
     try {
-      const res = await api.get("/posts");
-      setPosts(res.data);
+      const res = await api.get(`/posts?page=${page}&limit=${limit}`);
+      setPosts(res.data.data);
+      setTotal(res.data.total);
     } catch (err) {
       console.log("Erro ao buscar posts:", err);
     }
   };
 
-  // Atualiza sempre que a tela volta a ser focada
   useFocusEffect(
     React.useCallback(() => {
       fetchPosts();
-    }, [])
+    }, [page])
   );
 
   const renderItem = ({ item }: any) => (
@@ -39,7 +44,7 @@ export default function PostsList({ navigation }: any) {
                 await api.delete(`/posts/${item.id}`, {
                   data: { authorId: user?.id, authorName: user?.name },
                 });
-                fetchPosts(); // atualiza lista após exclusão
+                fetchPosts();
               } catch (err: any) {
                 alert(err.response?.data?.error || "Erro ao excluir atividade");
               }
@@ -74,20 +79,31 @@ export default function PostsList({ navigation }: any) {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.header}>📚 Lista de Atividades</Text>
       <FlatList
         data={posts}
         keyExtractor={(item) => String(item.id)}
         renderItem={renderItem}
         contentContainerStyle={{ paddingBottom: 20 }}
+        ListEmptyComponent={<Text style={styles.empty}>Nenhum post encontrado</Text>}
       />
-    </View>
+      {/* Controles de paginação */}
+      <View style={[styles.pagination, { paddingBottom: insets.bottom }]}>
+        <Button title="Anterior" onPress={() => setPage(page - 1)} disabled={page === 1} />
+        <Text style={styles.pageInfo}>Página {page}</Text>
+        <Button
+          title="Próxima"
+          onPress={() => setPage(page + 1)}
+          disabled={page * limit >= total}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f7fa", padding: 16 },
+  container: { flex: 1, backgroundColor: "#f5f7fa", paddingBottom: 12, paddingLeft: 16, paddingRight: 16  },
   header: { fontSize: 22, fontWeight: "bold", marginBottom: 16, color: "#006eff" },
   card: {
     backgroundColor: "#fff",
@@ -119,4 +135,12 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   deleteText: { color: "#fff", fontWeight: "bold" },
+  empty: { textAlign: "center", color: "#999", marginTop: 20 },
+  pagination: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 16,
+    alignItems: "center",
+  },
+  pageInfo: { fontSize: 16, fontWeight: "bold", color: "#333" },
 });
