@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
 
@@ -13,21 +13,17 @@ export default function LoginScreen({ navigation }: any) {
   const { login } = useAuth();
 
   const onSubmit = async (data: FormData) => {
-  console.log("Tentando login com:", data);
-  try {
-    await login(data.email, data.password);
-    console.log("Login OK, indo para Atividades...");
-    navigation.replace('Atividades');
-  } catch (err) {
-    console.error("Erro no login:", err);
-    alert('Error ao fazer login. Verifique suas credenciais.');
-  }
-};
-
+    try {
+      await login(data.email, data.password);
+      navigation.replace('Home');
+    } catch (err) {
+      alert('Erro ao fazer login. Verifique suas credenciais.');
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+      <Text style={styles.title}>🔐 Login</Text>
 
       <Controller
         control={control}
@@ -36,14 +32,15 @@ export default function LoginScreen({ navigation }: any) {
         render={({ field: { onChange, value } }) => (
           <TextInput
             style={styles.input}
-            placeholder="Email"
+            placeholder="Digite seu email"
+            keyboardType="email-address"
+            autoCapitalize="none"
             value={value}
             onChangeText={onChange}
           />
         )}
       />
 
-      <View style={{ height: 12 }} />
       <Controller
         control={control}
         name="password"
@@ -51,31 +48,47 @@ export default function LoginScreen({ navigation }: any) {
         render={({ field: { onChange, value } }) => (
           <TextInput
             style={styles.input}
-            placeholder="Senha"
-            secureTextEntry={true}
+            placeholder="Digite sua senha"
+            secureTextEntry
             value={value}
             onChangeText={onChange}
           />
         )}
       />
 
+      <TouchableOpacity style={styles.button} onPress={handleSubmit(onSubmit)}>
+        <Text style={styles.buttonText}>Entrar</Text>
+      </TouchableOpacity>
 
-      <Button title="Entrar" onPress={handleSubmit(onSubmit)} />
-      <View style={{ height: 16 }} />
-      <Button title="Cadastrar" onPress={handleSubmit(onSubmit)} />
-
+      <TouchableOpacity
+        style={[styles.button, styles.secondaryButton]}
+        onPress={() => navigation.navigate("Cadastro")}
+      >
+        <Text style={styles.buttonText}>Cadastrar</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 20 },
-  title: { fontSize:28, marginBottom: 20, textAlign: 'center' },
+  container: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: '#f5f7fa' },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 24, textAlign: 'center', color: '#006eff' },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
+    backgroundColor: '#fff',
     padding: 12,
-    marginBottom: 12,
-    borderRadius: 6,
+    marginBottom: 16,
+    borderRadius: 8,
+    fontSize: 16,
   },
+  button: {
+    backgroundColor: '#006eff',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  secondaryButton: { backgroundColor: '#ffaa00' },
+  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 });
