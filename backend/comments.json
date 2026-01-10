@@ -1,16 +1,2 @@
 [
-  {
-    "id": 1,
-    "postId": "1",
-    "author": "José Marcio ",
-    "content": "Teste comentario",
-    "createdAt": "2026-01-10T03:09:38.695Z"
-  },
-  {
-    "id": 2,
-    "postId": "1",
-    "author": "Marcio",
-    "content": "Teste",
-    "createdAt": "2026-01-10T13:48:58.386Z"
-  }
 ]

@@ -1,42 +1,48 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Button } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "../services/api";
 
 export default function AdminScreen({ navigation }: any) {
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 5;
+  const insets = useSafeAreaInsets();
+
+  const fetchUsers = async () => {
+    const res = await api.get(`/users?page=${page}&limit=${limit}`);
+    setUsers(res.data.data);
+    setTotal(res.data.total);
+  };
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      const res = await api.get("/users");
-      setUsers(res.data);
-    };
     fetchUsers();
-  }, []);
+  }, [page]);
 
   const filteredUsers = users.filter((u) =>
     u.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const renderItem = ({ item }: any) => (
-  <TouchableOpacity
-    style={[
-      styles.card,
-      item.role === "professor" ? styles.professorCard : styles.alunoCard,
-    ]}
-    onPress={() => navigation.navigate("UserDetail", { user: item })}
-  >
-    <Text style={styles.name}>{item.name}</Text>
-    <Text style={styles.role}>
-      {item.role === "professor" ? "👨‍🏫 Professor" : "🎓 Aluno"}
-    </Text>
-    <Text style={styles.email}>{item.email}</Text>
-  </TouchableOpacity>
-);
-
+    <TouchableOpacity
+      style={[
+        styles.card,
+        item.role === "professor" ? styles.professorCard : styles.alunoCard,
+      ]}
+      onPress={() => navigation.navigate("UserDetail", { user: item })}
+    >
+      <Text style={styles.name}>{item.name}</Text>
+      <Text style={styles.role}>
+        {item.role === "professor" ? "👨‍🏫 Professor" : "🎓 Aluno"}
+      </Text>
+      <Text style={styles.email}>{item.email}</Text>
+    </TouchableOpacity>
+  );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.title}>👥 Lista de Alunos e Professores</Text>
       <TextInput
         style={styles.input}
@@ -50,12 +56,22 @@ export default function AdminScreen({ navigation }: any) {
         renderItem={renderItem}
         ListEmptyComponent={<Text style={styles.empty}>Nenhum usuário encontrado</Text>}
       />
-    </View>
+      {/* Paginação */}
+      <View style={[styles.pagination, { paddingBottom: insets.bottom }]}>
+        <Button title="Anterior" onPress={() => setPage(page - 1)} disabled={page === 1} />
+        <Text style={styles.pageInfo}>Página {page}</Text>
+        <Button
+          title="Próxima"
+          onPress={() => setPage(page + 1)}
+          disabled={page * limit >= total}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f7fa", padding: 16 },
+  container: { flex: 1, backgroundColor: "#f5f7fa", paddingBottom: 12, paddingLeft: 16, paddingRight: 16 },
   title: {
     fontSize: 22,
     fontWeight: "bold",
@@ -86,4 +102,11 @@ const styles = StyleSheet.create({
   role: { fontSize: 14, marginTop: 4, color: "#555" },
   email: { fontSize: 14, marginTop: 4, color: "#777" },
   empty: { textAlign: "center", color: "#999", marginTop: 20 },
+  pagination: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 16,
+    alignItems: "center",
+  },
+  pageInfo: { fontSize: 16, fontWeight: "bold", color: "#333" },
 });
