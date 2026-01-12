@@ -23,6 +23,7 @@ export default function UserDetail() {
       await api.put(`/users/${user.id}`, {
         name,
         email,
+        role: user.role,
       });
       Alert.alert("Sucesso", "Usuário atualizado!");
       navigation.goBack();

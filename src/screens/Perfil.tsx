@@ -10,8 +10,10 @@ export default function Perfil({ route }: any) {
       <View style={styles.header}>
         <Text style={styles.name}>{user.name}</Text>
         <Text style={styles.role}>
-          {user.role === "aluno" ? "Aluno" : "Professor"}
-        </Text>
+  {user.role === "professor" ? "Professor" : "Aluno"}
+</Text>
+
+
       </View>
 
       {/* Cartão com informações */}
