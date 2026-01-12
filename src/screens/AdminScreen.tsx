@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Button } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "../services/api";
@@ -20,6 +21,13 @@ export default function AdminScreen({ navigation }: any) {
   useEffect(() => {
     fetchUsers();
   }, [page]);
+
+  // Recarrega a lista sempre que a tela volta a ficar em foco (por exemplo, após editar um usuário)
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchUsers();
+    }, [page])
+  );
 
   const filteredUsers = users.filter((u) =>
     u.name.toLowerCase().includes(search.toLowerCase())
