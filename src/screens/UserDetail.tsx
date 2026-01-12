@@ -1,52 +1,73 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Alert 
+} from "react-native";
 import { api } from "../services/api";
+import { useRoute, useNavigation } from "@react-navigation/native";
 
-export default function UserDetail({ route, navigation }: any) {
-  const { user } = route.params;
+export default function UserDetail() {
+  const route = useRoute<any>();
+  const navigation = useNavigation();
+  const { user } = route.params;   // usuário passado pela navegação
+
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
-  const [role, setRole] = useState(user.role);
 
   const handleUpdate = async () => {
-  try {
-    await api.put(`/users/${user.id}`, {
-      name,
-      email,
-      role,
-    });
-    Alert.alert("Sucesso", "Usuário atualizado!");
-    navigation.goBack();
-  } catch (err: any) {
-    console.error("Erro ao atualizar:", err.response?.data || err.message);
-    Alert.alert("Erro", "Não foi possível atualizar usuário.");
-  }
-};
+    try {
+      await api.put(`/users/${user.id}`, {
+        name,
+        email,
+      });
+      Alert.alert("Sucesso", "Usuário atualizado!");
+      navigation.goBack();
+    } catch (err: any) {
+      console.error("Erro ao atualizar:", err.response?.data || err.message);
+      Alert.alert("Erro", "Não foi possível atualizar usuário.");
+    }
+  };
 
-const handleDelete = async () => {
-  try {
-    await api.delete(`/users/${user.id}`);
-    Alert.alert("Sucesso", "Usuário deletado!");
-    navigation.goBack();
-  } catch (err: any) {
-    console.error("Erro ao deletar:", err.response?.data || err.message);
-    Alert.alert("Erro", "Não foi possível deletar usuário.");
-  }
-};
-
+  const handleDelete = async () => {
+    try {
+      await api.delete(`/users/${user.id}`);
+      Alert.alert("Sucesso", "Usuário deletado!");
+      navigation.goBack();
+    } catch (err: any) {
+      console.error("Erro ao deletar:", err.response?.data || err.message);
+      Alert.alert("Erro", "Não foi possível deletar usuário.");
+    }
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Detalhes do Usuário</Text>
 
-      <TextInput style={styles.input} value={name} onChangeText={setName} />
-      <TextInput style={styles.input} value={email} onChangeText={setEmail} />
+      <TextInput 
+        style={styles.input} 
+        value={name} 
+        onChangeText={setName} 
+        placeholder="Nome"
+      />
+      <TextInput 
+        style={styles.input} 
+        value={email} 
+        onChangeText={setEmail} 
+        placeholder="Email"
+      />
 
       <TouchableOpacity style={styles.button} onPress={handleUpdate}>
         <Text style={styles.buttonText}>Salvar Alterações</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.button, styles.deleteButton]} onPress={handleDelete}>
+      <TouchableOpacity 
+        style={[styles.button, styles.deleteButton]} 
+        onPress={handleDelete}
+      >
         <Text style={styles.buttonText}>Deletar Usuário</Text>
       </TouchableOpacity>
     </View>
