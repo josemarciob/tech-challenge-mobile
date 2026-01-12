@@ -30,9 +30,11 @@ export default function EditPostScreen() {
         authorId: user?.id,       
         authorName: user?.name,   
       });
+      console.log("authorId enviado:", user?.id);
 
       navigation.goBack();
     } catch (err: any) {
+      console.log("authorId enviadoo:", user?.id);
       console.error("Erro ao editar:", err.response?.data || err.message);
       alert(err.response?.data?.error || "Erro ao editar post");
     }

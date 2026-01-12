@@ -6,6 +6,12 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// simple request logger to help debugging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+
 let users = [];
 let posts = [];
 let atividades = [];
@@ -58,6 +64,29 @@ app.get("/users", (req, res) => {
     data: results,
   });
 });
+
+// Atualizar usuário
+app.put("/users/:id", (req, res) => {
+  const { id } = req.params;
+  const { name, email, role } = req.body;
+  const userIndex = users.findIndex(u => u.id == id);
+  if (userIndex === -1) return res.status(404).json({ error: "Usuário não encontrado" });
+
+  users[userIndex] = { ...users[userIndex], name, email, role };
+  res.json(users[userIndex]);
+});
+
+// Deletar usuário
+app.delete("/users/:id", (req, res) => {
+  const { id } = req.params;
+  const userIndex = users.findIndex(u => u.id == id);
+  if (userIndex === -1) return res.status(404).json({ error: "Usuário não encontrado" });
+
+  users.splice(userIndex, 1);
+  res.json({ message: "Usuário deletado com sucesso" });
+});
+
+
 
 
 // Login
@@ -253,4 +282,11 @@ app.get("/atividades/:id/comments", (req, res) => {
     res.json(atividadeComments); 
 });
 
-app.listen(3000, () => console.log("Backend rodando na porta 3000"));
+// return JSON 404 for unmatched routes (avoid Express's HTML 404 page)
+app.use((req, res) => {
+  res.status(404).json({ error: `Cannot ${req.method} ${req.path}` });
+});
+
+// bind explicitly to 127.0.0.1 to avoid IPv6/localhost resolution issues on Windows
+const HOST = '127.0.0.1';
+app.listen(3000, HOST, () => console.log(`Backend rodando na porta 3000 (host=${HOST})`));
