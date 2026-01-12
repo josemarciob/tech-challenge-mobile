@@ -3,9 +3,13 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 
-export default function HomeScreen({ navigation }: any) {
+interface HomeScreenProps {
+  navigation: any; // pode tipar com NavigationProp se quiser
+}
+
+export default function HomeScreen({ navigation }: HomeScreenProps) {
   const { user, logout } = useAuth();
-  const insets = useSafeAreaInsets(); // pega os espaços seguros do dispositivo
+  const insets = useSafeAreaInsets();
 
   if (!user) {
     return (
@@ -22,12 +26,12 @@ export default function HomeScreen({ navigation }: any) {
         <Text style={styles.welcome}>Bem-vindo 👋</Text>
         <Text style={styles.name}>{user.name}</Text>
         <Text style={styles.role}>
-          {user.role === "estudante" ? "Estudante" : "Professor"}
+          {user.role === "professor" ? "Professor" : "Aluno"}
         </Text>
       </View>
 
-      {/* Painel para Estudante */}
-      {user.role === "estudante" && (
+      {/* Painel para Aluno */}
+      {user.role === "aluno" && (
         <View style={styles.panel}>
           <TouchableOpacity
             style={styles.card}
@@ -40,7 +44,7 @@ export default function HomeScreen({ navigation }: any) {
             style={styles.card}
             onPress={() => navigation.navigate("Perfil", { user })}
           >
-            <Text style={styles.cardTitle}>👤 Perfil do Estudante</Text>
+            <Text style={styles.cardTitle}>👤 Perfil do Aluno</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -80,7 +84,7 @@ export default function HomeScreen({ navigation }: any) {
 
       {/* Botão de sair */}
       <TouchableOpacity
-        style={[styles.logoutButton, { marginBottom: insets.bottom }]} // respeita área segura
+        style={[styles.logoutButton, { marginBottom: insets.bottom }]}
         onPress={() => {
           logout();
           navigation.replace("Login");
@@ -91,6 +95,7 @@ export default function HomeScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f5f7fa", paddingBottom: 12, paddingLeft: 16, paddingRight: 16 },

@@ -6,7 +6,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-//request debugging
+// request debugging
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path}`);
   next();
@@ -29,12 +29,17 @@ if (fs.existsSync("comments.json")) {
 
 // Registro de usuário
 app.post("/auth/register", (req, res) => {
-  const { name, email, password, role, secretKey } = req.body;
+  let { name, email, password, role, secretKey } = req.body;
 
+  // Validação de campos obrigatórios
   if (!name || !email || !password || !role) {
     return res.status(400).json({ error: "Nome, email, senha e role são obrigatórios" });
   }
 
+  // Normalizar role: sempre usar "aluno" ou "professor"
+  if (role === "estudante") role = "aluno";
+
+  // Validação da chave secreta para professor
   if (role === "professor") {
     const PROFESSOR_SECRET = "123";
     if (secretKey !== PROFESSOR_SECRET) {
@@ -42,13 +47,26 @@ app.post("/auth/register", (req, res) => {
     }
   }
 
+  // Verificar se email já existe
+  const existingUser = users.find(u => u.email === email);
+  if (existingUser) {
+    return res.status(409).json({ error: "Email já registrado" });
+  }
+
+  // Criar novo usuário
   const id = users.length + 1;
   const user = { id, name, email, password, role };
   users.push(user);
-  res.json(user);
+
+  // Nunca retornar a senha para o frontend
+  const { password: _, ...safeUser } = user;
+
+  res.json(safeUser);
 });
 
-// listar todos os usuários
+
+
+// listar todos os usuários (com paginação e role incluído)
 app.get("/users", (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
@@ -61,7 +79,12 @@ app.get("/users", (req, res) => {
     page,
     limit,
     total: users.length,
-    data: results,
+    data: results.map(u => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role
+    })),
   });
 });
 
@@ -86,9 +109,6 @@ app.delete("/users/:id", (req, res) => {
   res.json({ message: "Usuário deletado com sucesso" });
 });
 
-
-
-
 // Login
 app.post("/auth/login", (req, res) => {
   const { email, password } = req.body;
@@ -102,9 +122,9 @@ app.post("/auth/login", (req, res) => {
     token,
     user: { id: user.id, name: user.name, email: user.email, role: user.role },
   });
+  console.log("Usuário logado:", user);
 });
 
-// Listar posts
 // Listar posts com paginação
 app.get("/posts", (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -121,7 +141,6 @@ app.get("/posts", (req, res) => {
     data: results,
   });
 });
-
 
 // Criar post (somente professor)
 app.post("/posts", (req, res) => {
@@ -277,14 +296,16 @@ app.post("/atividades/:id/comments", (req, res) => {
 
 // Listar comentários de uma atividade 
 app.get("/atividades/:id/comments", (req, res) => { 
-    const atividadeId = req.params.id;
-    const atividadeComments = comments.filter(c => c.atividadeId == atividadeId); 
-    res.json(atividadeComments); 
+  const atividadeId = req.params.id;
+  const atividadeComments = comments.filter(c => c.atividadeId == atividadeId); 
+  res.json(atividadeComments); 
 });
 
+// Rota padrão para erros 404
 app.use((req, res) => {
   res.status(404).json({ error: `Error: ${req.method} ${req.path}` });
 });
 
+// Inicialização do servidor
 const HOST = '0.0.0.0';
 app.listen(3000, HOST, () => console.log(`Backend rodando na porta 3000 (host=${HOST})`));

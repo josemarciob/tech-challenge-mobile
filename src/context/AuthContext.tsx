@@ -1,14 +1,22 @@
 import React, { createContext, useContext, useState } from "react";
 import { api, setAuthToken } from "../services/api";
 
-type User = { id: string; name: string; role: "professor" | "estudante", email: string };
+// Tipagem do usuário: agora só "aluno" ou "professor"
+export type Role = "aluno" | "professor";
 
-type AuthContextType = {
+export interface User {
+  id: string;
+  name: string;
+  role: Role;
+  email: string;
+}
+
+interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-};
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -17,21 +25,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
 
   const login = async (email: string, password: string) => {
-  const { data } = await api.post("/auth/login", { email, password });
-  console.log("Resposta do backend:", data);
+    const { data } = await api.post("/auth/login", { email, password });
+    console.log("Resposta do backend:", data);
 
     setToken(data.token);
     setAuthToken(data.token);
 
-    // ajuste: monta o objeto user corretamente
+    // monta o objeto user corretamente
     setUser({
       id: String(data.user?.id || data.id),
       name: data.user?.name || data.name,
-      role: data.user?.role || data.role,
+      role: data.user?.role || data.role, // agora só "aluno" ou "professor"
       email: data.user?.email || data.email,
     });
   };
-
 
   const logout = () => {
     setUser(null);
