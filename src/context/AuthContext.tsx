@@ -1,19 +1,40 @@
-import React, { createContext, useContext, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { api, setAuthToken } from "../services/api";
+import { jwtDecode } from "jwt-decode";
 
-// Tipagem do usuário: agora só "aluno" ou "professor"
 export type Role = "aluno" | "professor";
 
 export interface User {
   id: string;
   name: string;
-  role: Role;
   email: string;
+  role: Role;
+  xp: number;
+  nivel: number;
+  moedas: number;
+  conquistas: string[];
+}
+
+interface TokenPayload {
+  id: number;
+  role: string;
+  name: string;
+  email?: string;
+  xp?: number;
+  nivel?: number;
+  moedas?: number;
+  conquistas?: string[];
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
+  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
@@ -23,21 +44,46 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true); // 🔥 começa carregando
+
+  useEffect(() => {
+    async function restoreSession() {
+      try {
+        // 🔜 AsyncStorage no futuro
+      } catch (e) {
+        console.warn("Erro ao restaurar sessão:", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    restoreSession();
+  }, []);
 
   const login = async (email: string, password: string) => {
-    const { data } = await api.post("/auth/login", { email, password });
-    console.log("Resposta do backend:", data);
+    setLoading(true);
+    try {
+      const { data } = await api.post("/auth/login", { email, password });
 
-    setToken(data.token);
-    setAuthToken(data.token);
+      const token = data.token;
+      setToken(token);
+      setAuthToken(token);
 
-    // monta o objeto user corretamente
-    setUser({
-      id: String(data.user?.id || data.id),
-      name: data.user?.name || data.name,
-      role: data.user?.role || data.role, // agora só "aluno" ou "professor"
-      email: data.user?.email || data.email,
-    });
+      const decoded = jwtDecode<TokenPayload>(token);
+
+      setUser({
+        id: String(decoded.id),
+        name: decoded.name,
+        email: decoded.email || "",
+        role: decoded.role.toLowerCase() as Role,
+        xp: decoded.xp ?? 0,
+        nivel: decoded.nivel ?? 1,
+        moedas: decoded.moedas ?? 0,
+        conquistas: decoded.conquistas ?? [],
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = () => {
@@ -47,16 +93,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth deve ser usado dentro de AuthProvider");
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    throw new Error("useAuth deve estar dentro de AuthProvider");
   }
-  return context;
+  return ctx;
 };
