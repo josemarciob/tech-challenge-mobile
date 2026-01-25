@@ -23,7 +23,10 @@ type FormData = {
 };
 
 export default function RegisterScreen({ navigation }: any) {
-  const { control, handleSubmit, watch } = useForm<FormData>();
+  const { control, handleSubmit, watch } = useForm<FormData>({
+    defaultValues: { role: "estudante" },
+  });
+
   const role = watch("role");
 
   const onSubmit = async (data: FormData) => {
@@ -31,6 +34,7 @@ export default function RegisterScreen({ navigation }: any) {
       alert("As senhas não coincidem!");
       return;
     }
+
     try {
       await api.post("/auth/register", data);
       alert("Cadastro realizado com sucesso!");
@@ -44,123 +48,129 @@ export default function RegisterScreen({ navigation }: any) {
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={80}
     >
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>📝 Cadastro</Text>
+        <View style={styles.card}>
+          <Text style={styles.title}>Criar Conta</Text>
+          <Text style={styles.subtitle}>
+            Preencha os dados para acessar o ambiente educacional
+          </Text>
 
-        {/* Nome */}
-        <Controller
-          control={control}
-          name="name"
-          rules={{ required: "Nome é obrigatório" }}
-          render={({ field: { onChange, value } }) => (
-            <TextInput
-              style={styles.input}
-              placeholder="Nome completo"
-              value={value}
-              onChangeText={onChange}
-            />
-          )}
-        />
-
-        {/* Email */}
-        <Controller
-          control={control}
-          name="email"
-          rules={{ required: "Email é obrigatório" }}
-          render={({ field: { onChange, value } }) => (
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={value}
-              onChangeText={onChange}
-            />
-          )}
-        />
-
-        {/* Senha */}
-        <Controller
-          control={control}
-          name="password"
-          rules={{ required: "Senha é obrigatória" }}
-          render={({ field: { onChange, value } }) => (
-            <TextInput
-              style={styles.input}
-              placeholder="Senha"
-              secureTextEntry
-              value={value}
-              onChangeText={onChange}
-            />
-          )}
-        />
-
-        {/* Confirmar senha */}
-        <Controller
-          control={control}
-          name="confirmPassword"
-          rules={{ required: "Confirme sua senha" }}
-          render={({ field: { onChange, value } }) => (
-            <TextInput
-              style={styles.input}
-              placeholder="Confirme sua senha"
-              secureTextEntry
-              value={value}
-              onChangeText={onChange}
-            />
-          )}
-        />
-
-        {/* Role com RadioButton */}
-        <Text style={styles.subtitle}>Selecione seu perfil:</Text>
-        <Controller
-          control={control}
-          name="role"
-          rules={{ required: "Role é obrigatória" }}
-          render={({ field: { onChange, value } }) => (
-            <RadioButton.Group onValueChange={onChange} value={value}>
-              <View style={styles.radioGroup}>
-                <View style={styles.radioItem}>
-                  <RadioButton value="estudante" />
-                    <Text>Estudante</Text>
-                    <RadioButton value="professor" />
-                    <Text>Professor</Text>
-
-                </View>
-              </View>
-            </RadioButton.Group>
-          )}
-        />
-
-        {/* Campo secreto só se for professor */}
-        {role === "professor" && (
+          {/* Nome */}
           <Controller
             control={control}
-            name="secretKey"
+            name="name"
+            rules={{ required: "Nome é obrigatório" }}
             render={({ field: { onChange, value } }) => (
               <TextInput
                 style={styles.input}
-                placeholder="Senha secreta do professor"
+                placeholder="Nome completo"
+                value={value}
+                onChangeText={onChange}
+              />
+            )}
+          />
+
+          {/* Email */}
+          <Controller
+            control={control}
+            name="email"
+            rules={{ required: "Email é obrigatório" }}
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={value}
+                onChangeText={onChange}
+              />
+            )}
+          />
+
+          {/* Senha */}
+          <Controller
+            control={control}
+            name="password"
+            rules={{ required: "Senha é obrigatória" }}
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                style={styles.input}
+                placeholder="Senha"
                 secureTextEntry
                 value={value}
                 onChangeText={onChange}
               />
             )}
           />
-        )}
 
-        <TouchableOpacity style={styles.button} onPress={handleSubmit(onSubmit)}>
-          <Text style={styles.buttonText}>Cadastrar</Text>
-        </TouchableOpacity>
+          {/* Confirmar Senha */}
+          <Controller
+            control={control}
+            name="confirmPassword"
+            rules={{ required: "Confirme sua senha" }}
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                style={styles.input}
+                placeholder="Confirmar senha"
+                secureTextEntry
+                value={value}
+                onChangeText={onChange}
+              />
+            )}
+          />
 
-        <TouchableOpacity
-          style={[styles.button, styles.secondaryButton]}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.buttonText}>Voltar</Text>
-        </TouchableOpacity>
+          {/* Perfil */}
+          <Text style={styles.sectionTitle}>Perfil de acesso</Text>
+          <Controller
+            control={control}
+            name="role"
+            render={({ field: { onChange, value } }) => (
+              <RadioButton.Group onValueChange={onChange} value={value}>
+                <View style={styles.radioGroup}>
+                  <View style={styles.radioItem}>
+                    <RadioButton value="estudante" />
+                    <Text>Estudante</Text>
+                  </View>
+
+                  <View style={styles.radioItem}>
+                    <RadioButton value="professor" />
+                    <Text>Professor</Text>
+                  </View>
+                </View>
+              </RadioButton.Group>
+            )}
+          />
+
+          {/* Senha Professor */}
+          {role === "professor" && (
+            <Controller
+              control={control}
+              name="secretKey"
+              rules={{ required: "Senha secreta obrigatória" }}
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  style={styles.input}
+                  placeholder="Senha secreta do professor"
+                  secureTextEntry
+                  value={value}
+                  onChangeText={onChange}
+                />
+              )}
+            />
+          )}
+
+          <TouchableOpacity style={styles.button} onPress={handleSubmit(onSubmit)}>
+            <Text style={styles.buttonText}>Cadastrar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.linkText}>Já tenho conta</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -168,37 +178,76 @@ export default function RegisterScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
-    justifyContent: "flex-start",
-    padding: 20,
-    backgroundColor: "#f5f7fa",
+  flexGrow: 1,
+  justifyContent: "flex-start",
+  padding: 20,
+  paddingTop: 20, // 👈 controla o quanto sobe
+  backgroundColor: "#f5f7fa",
+},
+  card: {
+    backgroundColor: "#fff",
+    padding: 24,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 24,
+    fontSize: 26,
+    fontWeight: "700",
     textAlign: "center",
     color: "#006eff",
   },
-  subtitle: { fontSize: 16, marginVertical: 12, fontWeight: "600", color: "#333" },
+  subtitle: {
+    fontSize: 14,
+    textAlign: "center",
+    color: "#666",
+    marginVertical: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginVertical: 12,
+    color: "#333",
+  },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    backgroundColor: "#fff",
-    padding: 12,
-    marginBottom: 16,
-    borderRadius: 8,
+    borderColor: "#ddd",
+    backgroundColor: "#fafafa",
+    padding: 14,
+    marginBottom: 14,
+    borderRadius: 10,
     fontSize: 16,
   },
-  radioGroup: { flexDirection: "row", justifyContent: "space-around", marginBottom: 16 },
-  radioItem: { flexDirection: "row", alignItems: "center", marginHorizontal: 8 },
+  radioGroup: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  radioItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   button: {
     backgroundColor: "#006eff",
-    paddingVertical: 14,
-    borderRadius: 8,
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: "center",
     marginTop: 12,
   },
-  secondaryButton: { backgroundColor: "#ffaa00" },
-  buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  buttonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  linkButton: {
+    marginTop: 16,
+    alignItems: "center",
+  },
+  linkText: {
+    color: "#006eff",
+    fontWeight: "600",
+  },
 });
+
