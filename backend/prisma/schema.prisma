@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int         @id @default(autoincrement())
+  name       String
+  email      String      @unique
+  password   String
+  role       String
+  xp         Int         @default(0)
+  nivel      Int         @default(1)
+  moedas     Int         @default(0)
+  conquistas String[]
+  atividades Atividade[]
+  comments   Comment[]   @relation("UserComments")
+  posts      Post[]
+}
+
+model Post {
+  id         Int         @id @default(autoincrement())
+  title      String
+  content    String
+  authorId   Int
+  atividades Atividade[]
+  comments   Comment[]
+  author     User        @relation(fields: [authorId], references: [id])
+}
+
+model Atividade {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  content     String
+  authorId    Int
+  postId      Int
+  author      User      @relation(fields: [authorId], references: [id])
+  post        Post      @relation(fields: [postId], references: [id])
+  comments    Comment[]
+  questoes    Questao[]
+}
+
+model Questao {
+  id          Int       @id @default(autoincrement())
+  enunciado   String
+  resposta    String
+  atividadeId Int
+  atividade   Atividade @relation(fields: [atividadeId], references: [id])
+}
+
+model Comment {
+  id          Int        @id @default(autoincrement())
+  content     String
+
+  author      String
+
+  userId      Int        
+  user        User       @relation("UserComments", fields: [userId], references: [id])
+  
+  postId      Int?
+  post        Post?      @relation(fields: [postId], references: [id])
+  
+  atividadeId Int?
+  atividade   Atividade? @relation(fields: [atividadeId], references: [id])
+  
+  createdAt   DateTime   @default(now())
+}
+
+
