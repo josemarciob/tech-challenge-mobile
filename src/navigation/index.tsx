@@ -1,40 +1,37 @@
-import { NavigationContainer } from "@react-navigation/native"; 
-import { createNativeStackNavigator} from "@react-navigation/native-stack";
-import { enableScreens } from "react-native-screens";
+import React, { useCallback } from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import * as SplashScreen from "expo-splash-screen";
 
-import LoginScreen from "../screens/Login";
-import PostsList from "../screens/PostsList";
-import PostDetail from "../screens/PostDetail";
-import CreatePost from "../screens/CreatePost";
-import EditPostScreen from "../screens/EditPostScreen";
-import RegisterScreen from "../screens/RegisterScreen";
-import HomeScreen from "../screens/HomeScreen";
-import Perfil from "../screens/Perfil";
-import AdminScreen from "../screens/AdminScreen";
-import UserDetail from "../screens/UserDetail";
-
-enableScreens();
+import Login from "../screens/Login";
+import Register from "../screens/RegisterScreen";
+import AppStack from "./AppStack";
+import { useAuth } from "../context/AuthContext";
 
 const Stack = createNativeStackNavigator();
 
-export default function AppNavigator() {
+export default function Navigation() {
+  const { user, loading } = useAuth();
+
+  const onReady = useCallback(async () => {
+    await SplashScreen.hideAsync();
+  }, []);
+
+  if (loading) {
+    return null;
+  }
+
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login">
-        <Stack.Screen
-          name="Login"
-          component={LoginScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Atividades" component={PostsList} />
-        <Stack.Screen name="Detalhes Atividade" component={PostDetail} />
-        <Stack.Screen name="Criar Atividade" component={CreatePost} />
-        <Stack.Screen name="Edite Atividade" component={EditPostScreen} />
-        <Stack.Screen name="Cadastro" component={RegisterScreen} />
-        <Stack.Screen name="Perfil" component={Perfil} />
-        <Stack.Screen name="AdminScreen" component={AdminScreen} />
-        <Stack.Screen name="UserDetail" component={UserDetail} />
+    <NavigationContainer onReady={onReady}>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {user ? (
+          <Stack.Screen name="App" component={AppStack} />
+        ) : (
+          <>
+            <Stack.Screen name="Login" component={Login} />
+            <Stack.Screen name="Register" component={Register} />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );
