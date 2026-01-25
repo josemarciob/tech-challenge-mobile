@@ -1,28 +1,33 @@
 {
   "expo": {
-    "name": "tech-challenge-mobile",
-    "slug": "tech-challenge-mobile",
-    "version": "1.0.0",
+    "name": "Ambiente Academico",
+    "slug": "ambiente-academico",
+    "version": "2.1.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/TelaInicial.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    
     "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "image": "./assets/TelaInicial.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#006eff"
     },
+    
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "backgroundColor": "#006eff",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/TelaInicial.png",
+        "backgroundColor": "#006eff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictitiveBackGestureEnabled": false,
+      "package": "com.josevesk.ambienteacademico"
     },
+    
     "web": {
       "favicon": "./assets/favicon.png"
     }
