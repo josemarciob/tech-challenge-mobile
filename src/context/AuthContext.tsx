@@ -18,6 +18,7 @@ export interface User {
   nivel: number;
   moedas: number;
   conquistas: string[];
+  atividades: any[];
 }
 
 interface TokenPayload {
@@ -29,6 +30,7 @@ interface TokenPayload {
   nivel?: number;
   moedas?: number;
   conquistas?: string[];
+  atividades: any[];
 }
 
 interface AuthContextType {
@@ -49,7 +51,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     async function restoreSession() {
       try {
-        // 🔜 AsyncStorage no futuro
+        // AsyncStorage no futuro
       } catch (e) {
         console.warn("Erro ao restaurar sessão:", e);
       } finally {
@@ -80,6 +82,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         nivel: decoded.nivel ?? 1,
         moedas: decoded.moedas ?? 0,
         conquistas: decoded.conquistas ?? [],
+        atividades: [],
       });
     } finally {
       setLoading(false);

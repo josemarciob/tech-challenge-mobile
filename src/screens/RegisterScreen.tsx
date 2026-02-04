@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Keyboard,
+  ActivityIndicator,
+  Alert
 } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { RadioButton } from "react-native-paper";
@@ -23,24 +26,51 @@ type FormData = {
 };
 
 export default function RegisterScreen({ navigation }: any) {
+  const [loading, setLoading] = useState(false); 
+
   const { control, handleSubmit, watch } = useForm<FormData>({
-    defaultValues: { role: "estudante" },
+    defaultValues: { role: "student" }, 
   });
 
   const role = watch("role");
 
   const onSubmit = async (data: FormData) => {
+    Keyboard.dismiss(); 
+
     if (data.password !== data.confirmPassword) {
-      alert("As senhas não coincidem!");
+      Alert.alert("Atenção", "As senhas não coincidem!");
       return;
     }
 
+    setLoading(true);
+
     try {
-      await api.post("/auth/register", data);
-      alert("Cadastro realizado com sucesso!");
-      navigation.goBack();
-    } catch (err) {
-      alert("Erro ao cadastrar");
+      
+      await api.post("/auth/register", {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        role: data.role,
+        secretKey: data.secretKey
+      });
+
+      Alert.alert("Sucesso", "Cadastro realizado! Faça login para continuar.");
+      navigation.goBack(); 
+    } catch (err: any) {
+      console.log("Erro no cadastro:", err);
+      
+      // Lógica melhorada de erro
+      if (err.response) {
+        // O backend respondeu com um erro (ex: Email já existe)
+        Alert.alert("Erro", err.response.data.error || "Falha ao cadastrar.");
+      } else if (err.request) {
+        // O backend não respondeu (Timeout / IP errado)
+        Alert.alert("Erro de Conexão", "Não foi possível conectar ao servidor.");
+      } else {
+        Alert.alert("Erro", "Ocorreu um erro inesperado.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -49,7 +79,7 @@ export default function RegisterScreen({ navigation }: any) {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
           <Text style={styles.title}>Criar Conta</Text>
           <Text style={styles.subtitle}>
@@ -129,12 +159,13 @@ export default function RegisterScreen({ navigation }: any) {
               <RadioButton.Group onValueChange={onChange} value={value}>
                 <View style={styles.radioGroup}>
                   <View style={styles.radioItem}>
-                    <RadioButton value="estudante" />
+                    {/* Valor ajustado para 'student' */}
+                    <RadioButton value="student" color="#006eff" />
                     <Text>Estudante</Text>
                   </View>
 
                   <View style={styles.radioItem}>
-                    <RadioButton value="professor" />
+                    <RadioButton value="professor" color="#006eff" />
                     <Text>Professor</Text>
                   </View>
                 </View>
@@ -147,21 +178,34 @@ export default function RegisterScreen({ navigation }: any) {
             <Controller
               control={control}
               name="secretKey"
-              rules={{ required: "Senha secreta obrigatória" }}
+              rules={{ required: "Senha secreta obrigatória para professores" }}
               render={({ field: { onChange, value } }) => (
-                <TextInput
-                  style={styles.input}
-                  placeholder="Senha secreta do professor"
-                  secureTextEntry
-                  value={value}
-                  onChangeText={onChange}
-                />
+                <View>
+                  <Text style={{color: '#666', marginBottom: 5, fontSize: 12}}>
+                    Insira a chave de acesso da escola:
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Chave secreta (ex: 123)"
+                    secureTextEntry
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                </View>
               )}
             />
           )}
 
-          <TouchableOpacity style={styles.button} onPress={handleSubmit(onSubmit)}>
-            <Text style={styles.buttonText}>Cadastrar</Text>
+          <TouchableOpacity 
+            style={[styles.button, loading && { opacity: 0.7 }]} 
+            onPress={handleSubmit(onSubmit)}
+            disabled={loading}
+          >
+            {loading ? (
+                <ActivityIndicator color="#FFF" />
+            ) : (
+                <Text style={styles.buttonText}>Cadastrar</Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -178,12 +222,11 @@ export default function RegisterScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: {
-  flexGrow: 1,
-  justifyContent: "flex-start",
-  padding: 20,
-  paddingTop: 20, // 👈 controla o quanto sobe
-  backgroundColor: "#f5f7fa",
-},
+    flexGrow: 1,
+    justifyContent: "center", 
+    padding: 20,
+    backgroundColor: "#f5f7fa",
+  },
   card: {
     backgroundColor: "#fff",
     padding: 24,
@@ -224,6 +267,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 16,
+    paddingHorizontal: 10
   },
   radioItem: {
     flexDirection: "row",
@@ -244,10 +288,10 @@ const styles = StyleSheet.create({
   linkButton: {
     marginTop: 16,
     alignItems: "center",
+    padding: 10
   },
   linkText: {
     color: "#006eff",
     fontWeight: "600",
   },
 });
-

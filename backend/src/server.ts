@@ -3,7 +3,7 @@ dotenv.config();
 
 import app from "./app";
 
-// Validação de segurança crucial
+// Validação de segurança
 if (!process.env.DATABASE_URL) {
   console.error("Erro fatal: DATABASE_URL não configurada no .env");
   process.exit(1);

@@ -6,7 +6,7 @@ import { AuthProvider } from "./src/context/AuthContext";
 import Navigation from "./src/navigation";
 import CustomLoadingScreen from "./src/components/CustomLoadingScreen";
 
-// ⛔ Impede que a splash screen nativa suma sozinha
+// Impede que a splash screen nativa suma sozinha
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function App() {
@@ -14,11 +14,9 @@ export default function App() {
   const [showCustomLoading, setShowCustomLoading] = useState(false);
   const [hasMinimumTimePassed, setHasMinimumTimePassed] = useState(false);
 
-  // ESTA FUNÇÃO É A CHAVE: Esconde a splash nativa apenas quando
-  // a tela de loading customizada avisa que já está montada e visível.
   const onCustomLoadingMounted = useCallback(async () => {
     try {
-      console.log("🔄 CustomLoadingScreen montada, removendo splash nativa...");
+      console.log("CustomLoadingScreen montada, removendo splash nativa...");
       await SplashScreen.hideAsync();
     } catch (e) {
       console.warn(e);
@@ -28,18 +26,18 @@ export default function App() {
   useEffect(() => {
     let isMounted = true;
     const startTime = Date.now();
-    const MINIMUM_LOADING_TIME = 15000; // 15 segundos total
-    const SPLASH_SCREEN_TIME = 2000;    // Tempo de exibição da logo estática
+    const MINIMUM_LOADING_TIME = 15000; 
+    const SPLASH_SCREEN_TIME = 2000;   
 
     async function prepare() {
       try {
-        // FASE 1: Aguarda 2s com a Splash Nativa travada
+        // Aguarda 2s com a Splash Nativa travada
         await new Promise(resolve => setTimeout(resolve, SPLASH_SCREEN_TIME));
         
         if (isMounted) {
           setShowCustomLoading(true);
           
-          // FASE 2: Carregar recursos (API, Banco, etc)
+          //Carregar recursos (API, Banco, etc)
           await loadAppResources();
           
           if (isMounted) {
@@ -70,7 +68,7 @@ export default function App() {
 
   const loadAppResources = async () => {
     try {
-      // Simulação de carregamento (conforme seu original)
+      // Simulação de carregamento
       await new Promise(resolve => setTimeout(resolve, 5000));
       console.log("✅ Recursos carregados");
     } catch (error) {
@@ -78,7 +76,7 @@ export default function App() {
     }
   };
 
-  // 1. ESTADO DE CARREGAMENTO (Splash ou Custom Loading)
+  // ESTADO DE CARREGAMENTO (Splash ou Custom Loading)
   if (!appIsReady || !hasMinimumTimePassed) {
     return (
       // A View abaixo garante o fundo azul MESMO ANTES do componente montar
@@ -91,7 +89,7 @@ export default function App() {
     );
   }
 
-  // 2. APP PRINCIPAL
+  // APP PRINCIPAL
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
@@ -103,7 +101,7 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  // Container de loading com a MESMA cor da splash nativa
+  
   loadingContainer: {
     flex: 1,
     backgroundColor: "#006eff", 

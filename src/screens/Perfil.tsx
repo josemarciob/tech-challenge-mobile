@@ -6,7 +6,7 @@ export default function Perfil({ route }: any) {
 
   return (
     <View style={styles.container}>
-      {/* Cabeçalho colorido */}
+      {/* Cabeçalho */}
       <View style={styles.header}>
         <Text style={styles.name}>{user.name}</Text>
         <Text style={styles.role}>
@@ -16,7 +16,7 @@ export default function Perfil({ route }: any) {
 
       </View>
 
-      {/* Cartão com informações */}
+      {/* Cartão */}
       <View style={styles.card}>
         <Text style={styles.label}>Informações:</Text>
         <Text style={styles.label}>📧 Email</Text>

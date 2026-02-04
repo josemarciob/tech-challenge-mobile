@@ -8,67 +8,95 @@ datasource db {
 }
 
 model User {
-  id         Int         @id @default(autoincrement())
-  name       String
-  email      String      @unique
-  password   String
-  role       String
-  xp         Int         @default(0)
-  nivel      Int         @default(1)
-  moedas     Int         @default(0)
-  conquistas String[]
-  atividades Atividade[]
-  comments   Comment[]   @relation("UserComments")
-  posts      Post[]
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("student") // 'student', 'professor', 'admin'
+
+  xp        Int      @default(0)
+  moedas    Int      @default(0)
+  nivel     Int      @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts         Post[]        @relation("UserPosts")
+  quizAttempts  QuizAttempt[]
+  likes         Like[]
+  comments      Comment[]
 }
 
 model Post {
-  id         Int         @id @default(autoincrement())
-  title      String
-  content    String
-  authorId   Int
-  atividades Atividade[]
-  comments   Comment[]
-  author     User        @relation(fields: [authorId], references: [id])
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String   
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  authorId  Int
+  author    User     @relation("UserPosts", fields: [authorId], references: [id])
+
+  questions    Question[]    
+  quizAttempts QuizAttempt[] 
+
+  likes        Like[]        
+  comments     Comment[]     
 }
 
-model Atividade {
-  id          Int       @id @default(autoincrement())
-  title       String
-  description String?
-  content     String
-  authorId    Int
-  postId      Int
-  author      User      @relation(fields: [authorId], references: [id])
-  post        Post      @relation(fields: [postId], references: [id])
-  comments    Comment[]
-  questoes    Questao[]
+model Question {
+  id      Int      @id @default(autoincrement())
+  text    String
+  postId  Int
+  post    Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  options Option[]
 }
 
-model Questao {
-  id          Int       @id @default(autoincrement())
-  enunciado   String
-  resposta    String
-  atividadeId Int
-  atividade   Atividade @relation(fields: [atividadeId], references: [id])
+model Option {
+  id         Int      @id @default(autoincrement())
+  text       String
+  isCorrect  Boolean  @default(false)
+  
+  questionId Int
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model QuizAttempt {
+  id            Int      @id @default(autoincrement())
+  score         Int      
+  
+  rewardClaimed Boolean  @default(false) 
+  
+  createdAt     DateTime @default(now())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  postId Int
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Like {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  postId Int
+  
+  user   User @relation(fields: [userId], references: [id])
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
 }
 
 model Comment {
-  id          Int        @id @default(autoincrement())
-  content     String
-
-  author      String
-
-  userId      Int        
-  user        User       @relation("UserComments", fields: [userId], references: [id])
+  id        Int      @id @default(autoincrement())
+  text      String
+  createdAt DateTime @default(now())
   
-  postId      Int?
-  post        Post?      @relation(fields: [postId], references: [id])
+  userId    Int
+  postId    Int
   
-  atividadeId Int?
-  atividade   Atividade? @relation(fields: [atividadeId], references: [id])
-  
-  createdAt   DateTime   @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
-
-

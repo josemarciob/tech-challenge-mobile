@@ -17,8 +17,9 @@ O sistema é composto por duas camadas principais:
 
 - **Backend (API Node.js/Express)**  
   - Responsável por autenticação e persistência dos dados.  
+  - **Banco de Dados:** PostgreSQL (via Prisma ORM).
   - Mantém usuários e atividades em memória (simulação de banco de dados).  
-  - Endpoints REST para login, registro e gerenciamento de atividades.  
+  - Endpoints REST para login, registro, gerenciamento de atividades e quiz.  
   - Validação de roles (`estudante` e `professor`) com chave secreta para professores.  
 
 ## Fluxo simplificado:
@@ -49,10 +50,10 @@ npx expo start
 4. Escolha rodar no emulador Android/iOS ou no aplicativo Expo Go.
 
 ### Backend
-No arquivo src/services/api.ts, ajuste a URL para o backend que estiver rodando:
-```bash
+No arquivo `src/services/api.ts`, ajuste a URL para o IP da sua máquina:
+```typescript
 export const api = axios.create({
-  baseURL: 'http://localhost:3000/api' // ou a URL do servidor
+  baseURL: '[http://192.168.](http://192.168.)X.X:3000' 
 });
 ```
 Para iniciar o backend:
