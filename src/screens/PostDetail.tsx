@@ -12,7 +12,7 @@ import {
   StatusBar
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ArrowLeft, Clock, Play, X, CheckCircle, AlertCircle, RotateCcw, Share2, BookOpen, Lock, Trophy } from "lucide-react-native";
+import { ArrowLeft, Clock, Play, X, CheckCircle, RotateCcw, Share2, BookOpen, Lock, Trophy } from "lucide-react-native";
 import { MotiView } from "moti"; 
 import { LinearGradient } from "expo-linear-gradient";
 import { api } from "../services/api";
@@ -35,7 +35,7 @@ export default function PostDetail({ route, navigation }: any) {
   const [maxAttempts, setMaxAttempts] = useState(2);
   const [bestScore, setBestScore] = useState(0);
 
-  // Recompensa
+  // Gamificação (Recompensa)
   const [reward, setReward] = useState<any>(null);
 
   useEffect(() => {
@@ -73,13 +73,11 @@ export default function PostDetail({ route, navigation }: any) {
 
   const finishActivity = async (finalScore: number) => {
     try {
-        // Envia tentativa
         const res = await api.post(`/posts/${id}/finish`, {
             score: finalScore
         });
         
         setReward(res.data);
-        
         setAttempts(prev => prev + 1);
         if (finalScore > bestScore) setBestScore(finalScore);
 
@@ -105,7 +103,6 @@ export default function PostDetail({ route, navigation }: any) {
     setIsQuizOpen(true);
   };
 
-  //LÓGICA DE BLOQUEIO ---
   const isPerfectScore = post && bestScore === post.questions.length;
   const isAttemptsExhausted = attempts >= maxAttempts;
   const isLocked = isAttemptsExhausted || isPerfectScore;
@@ -139,7 +136,7 @@ export default function PostDetail({ route, navigation }: any) {
           </LinearGradient>
       </View>
 
-      {/* CONTEÚDO */}
+      {/* CONTEÚDO DA AULA */}
       <ScrollView 
         style={{ flex: 1 }} 
         contentContainerStyle={styles.content} 
@@ -170,29 +167,24 @@ export default function PostDetail({ route, navigation }: any) {
             </View>
             
             <View style={styles.divider} />
+            
+            {/* CORPO DO TEXTO */}
             <Text style={styles.body}>{post?.content}</Text>
         </MotiView>
       </ScrollView>
 
-      {/* FOOTER */}
+      {/* FOOTER  */}
       {post?.questions?.length > 0 && (
-        <MotiView 
-            from={{translateY: 100}} animate={{translateY: 0}} 
-            style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}
-        >
+        <MotiView from={{translateY: 100}} animate={{translateY: 0}} style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
           {isLocked ? (
-              //CONCLUÍDO / BLOQUEADO ---
-              <View style={[
-                  styles.lockedContainer, 
-                  isPerfectScore && { borderColor: '#10B981', backgroundColor: '#ECFDF5' }
-              ]}>
+            
+              <View style={[styles.lockedContainer, isPerfectScore && { borderColor: '#10B981', backgroundColor: '#ECFDF5' }]}>
                   <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', width:'100%', marginBottom: 8}}>
                     <Text style={[styles.lockedTitle, isPerfectScore && { color: '#047857' }]}>
                         {isPerfectScore ? "Atividade Concluída!" : "Tentativas Esgotadas"}
                     </Text>
                     {isPerfectScore ? <Trophy size={20} color="#10B981" /> : <Lock size={20} color="#64748B" />}
                   </View>
-                  
                   <View style={{flexDirection:'row', justifyContent:'space-between', width:'100%'}}>
                       <Text style={[styles.lockedSub, isPerfectScore && { color: '#047857' }]}>
                           Nota Final: {bestScore}/{post.questions.length}
@@ -205,33 +197,34 @@ export default function PostDetail({ route, navigation }: any) {
                   </View>
               </View>
           ) : (
-              //LIBERADO ---
+            
               <TouchableOpacity style={styles.btnStart} onPress={handleStartQuiz} activeOpacity={0.9}>
-                <LinearGradient
-                    colors={['#006eff', '#005bb5']}
-                    style={styles.gradientBtn}
+                <LinearGradient 
+                    colors={['#006eff', '#005bb5']} 
+                    style={styles.gradientBtn} 
                     start={{x:0, y:0}} end={{x:1, y:0}}
                 >
-                    <Play fill="#fff" color="#fff" size={20} />
-                    <Text style={styles.btnStartText}>
-                        Iniciar Quiz ({attempts}/{maxAttempts})
-                    </Text>
+                    <Play fill="#fff" color="#fff" size={24} style={{ marginRight: 8 }} />
+                    <View>
+                        <Text style={styles.btnStartText}>Iniciar Quiz</Text>
+                        <Text style={styles.btnSubText}>
+                            Tentativas Restantes: {maxAttempts - attempts}/{maxAttempts}
+                        </Text>
+                    </View>
                 </LinearGradient>
               </TouchableOpacity>
           )}
         </MotiView>
       )}
 
-      {/* MODAL DO QUIZ / RESULTADO */}
+      {/* MODAL DO QUIZ */}
       <Modal visible={isQuizOpen} animationType="slide" onRequestClose={() => setIsQuizOpen(false)}>
         <View style={[styles.quizContainer, { paddingTop: insets.top + 20 }]}>
-            
+            {/* Header do Quiz */}
             <View style={styles.quizHeader}>
                 <TouchableOpacity onPress={() => setIsQuizOpen(false)} style={styles.closeBtn}>
                     <X color="#64748B" size={24} />
                 </TouchableOpacity>
-                
-                {/* Esconde barra de progresso se for tela de resultado */}
                 {!showResult && (
                     <>
                         <View style={styles.progressBar}>
@@ -242,69 +235,59 @@ export default function PostDetail({ route, navigation }: any) {
                 )}
             </View>
 
+            {/* CONTEÚDO DO QUIZ */}
             {!showResult ? (
-                <View style={styles.questionBox}>
-                    <MotiView key={currentQuestionIndex} from={{ opacity: 0, translateX: 20 }} animate={{ opacity: 1, translateX: 0 }} transition={{ type: 'timing', duration: 300 }}>
-                        <Text style={styles.questionText}>{post?.questions[currentQuestionIndex].text}</Text>
-                        <View style={{ gap: 12 }}>
-                            {post?.questions[currentQuestionIndex].options.map((opt: any) => (
-                                <TouchableOpacity key={opt.id} style={styles.optionBtn} onPress={() => handleAnswer(opt.isCorrect)} activeOpacity={0.7}>
-                                    <View style={styles.radioOuter}><View style={styles.radioInner} /></View>
-                                    <Text style={styles.optionText}>{opt.text}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </MotiView>
-                </View>
+                <ScrollView 
+                    style={{ flex: 1 }} 
+                    contentContainerStyle={styles.scrollQuizContent} 
+                    showsVerticalScrollIndicator={false}
+                >
+                    <View style={styles.questionBox}>
+                        <MotiView key={currentQuestionIndex} from={{ opacity: 0, translateX: 20 }} animate={{ opacity: 1, translateX: 0 }} transition={{ type: 'timing', duration: 300 }}>
+                            
+                            {/* Enunciado */}
+                            <Text style={styles.questionText}>{post?.questions[currentQuestionIndex].text}</Text>
+                            
+                            {/* Opções */}
+                            <View style={{ gap: 12 }}>
+                                {post?.questions[currentQuestionIndex].options.map((opt: any) => (
+                                    <TouchableOpacity key={opt.id} style={styles.optionBtn} onPress={() => handleAnswer(opt.isCorrect)} activeOpacity={0.7}>
+                                        <View style={styles.radioOuter}><View style={styles.radioInner} /></View>
+                                        <Text style={styles.optionText}>{opt.text}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </MotiView>
+                    </View>
+                </ScrollView>
             ) : (
+
                 <View style={styles.resultBox}>
                     <CheckCircle size={80} color={reward?.xpEarned > 0 ? "#10B981" : "#F59E0B"} style={{marginBottom:10}} />
-                    
                     <Text style={styles.resultTitle}>
-                        {score / post.questions.length === 1 
-                            ? "Perfeito! 🌟" 
-                            : score / post.questions.length >= 0.7 
-                                ? "Mandou bem!" 
-                                : "Continue Tentando!"}
+                        {score / post.questions.length === 1 ? "Perfeito! 🌟" : score / post.questions.length >= 0.7 ? "Mandou bem!" : "Continue Tentando!"}
                     </Text>
-                    <Text style={styles.resultSub}>
-                        Você acertou <Text style={{fontWeight:'bold', color:'#0F172A'}}>{score}</Text> de {post.questions.length} questões
-                    </Text>
+                    <Text style={styles.resultSub}>Você acertou <Text style={{fontWeight:'bold', color:'#0F172A'}}>{score}</Text> de {post.questions.length} questões</Text>
                     
-                    {/* ÁREA DE RECOMPENSA */}
                     {reward && (
                         reward.xpEarned > 0 ? (
-                            // SE MELHOROU E GANHOU
-                            <MotiView 
-                                from={{ opacity: 0, scale: 0.8, translateY: 20 }}
-                                animate={{ opacity: 1, scale: 1, translateY: 0 }}
-                                transition={{ delay: 300 }}
-                                style={styles.rewardBox}
-                            >
+                            <MotiView from={{ opacity: 0, scale: 0.8, translateY: 20 }} animate={{ opacity: 1, scale: 1, translateY: 0 }} transition={{ delay: 300 }} style={styles.rewardBox}>
                                 <Text style={styles.rewardLabel}>RECOMPENSA RECEBIDA</Text>
                                 <View style={styles.rewardRow}>
                                     <Text style={styles.rewardValue}>+{reward.xpEarned} XP</Text>
                                     <View style={styles.dividerVertical} />
                                     <Text style={styles.rewardValue}>+{reward.coinsEarned} Moedas</Text>
                                 </View>
-                                
                                 {reward.leveledUp && (
-                                    <MotiView 
-                                        from={{ scale: 0.8 }} animate={{ scale: 1.1 }} 
-                                        transition={{ loop: true, type: 'timing', duration: 1000 }}
-                                        style={styles.levelUpBadge}
-                                    >
+                                    <MotiView from={{ scale: 0.8 }} animate={{ scale: 1.1 }} transition={{ loop: true, type: 'timing', duration: 1000 }} style={styles.levelUpBadge}>
                                         <Text style={styles.levelUpText}>SUBIU DE NÍVEL! 🚀</Text>
                                     </MotiView>
                                 )}
                             </MotiView>
                         ) : (
-                            
                             <View style={[styles.rewardBox, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
                                 <Text style={[styles.rewardLabel, { color: '#94A3B8' }]}>SEM PONTOS EXTRAS</Text>
-                                <Text style={{ textAlign:'center', color: '#64748B', fontSize: 13, marginTop: 5, fontWeight: '500' }}>
-                                    Você não superou sua pontuação anterior.
-                                </Text>
+                                <Text style={{ textAlign:'center', color: '#64748B', fontSize: 13, marginTop: 5, fontWeight: '500' }}>Você não superou sua pontuação anterior.</Text>
                             </View>
                         )
                     )}
@@ -313,7 +296,6 @@ export default function PostDetail({ route, navigation }: any) {
                         <Text style={styles.btnStartText}>Concluir Atividade</Text>
                     </TouchableOpacity>
                     
-                    {/* Se não estiver bloqueado, pode tentar de novo */}
                     {!isLocked && (
                         <TouchableOpacity onPress={restartQuiz} style={styles.retryBtn}>
                             <RotateCcw size={16} color="#006eff" />
@@ -334,7 +316,7 @@ const styles = StyleSheet.create({
   navBar: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20 },
   iconButton: { padding: 8, backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 12, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 5 },
   actions: { flexDirection: 'row', gap: 10 },
-  content: { paddingHorizontal: 24, paddingTop: 10, paddingBottom: 160 },
+  content: { paddingHorizontal: 24, paddingTop: 10, paddingBottom: 180 },
   
   categoryBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16, backgroundColor: '#EFF6FF', alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 },
   categoryText: { color: '#006eff', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
@@ -352,8 +334,17 @@ const styles = StyleSheet.create({
   
   footer: { padding: 20, position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(255,255,255,0.98)', borderTopWidth: 1, borderColor: '#F1F5F9' },
   btnStart: { borderRadius: 16, overflow: 'hidden', shadowColor: "#006eff", shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
-  gradientBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 18, gap: 10 },
-  btnStartText: { color: '#fff', fontSize: 16, fontWeight: 'bold', letterSpacing: 0.5 },
+  
+  gradientBtn: { 
+    flexDirection: 'row', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    paddingVertical: 12, 
+    paddingHorizontal: 20,
+    gap: 10 
+  },
+  btnStartText: { color: '#fff', fontSize: 18, fontWeight: 'bold', letterSpacing: 0.5 },
+  btnSubText: { color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: '500', marginTop: 2 },
   
   lockedContainer: { alignItems: 'center', backgroundColor: '#F8FAFC', padding: 20, borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0' },
   lockedTitle: { fontWeight: 'bold', fontSize: 16, color: '#1E293B' },
@@ -362,14 +353,16 @@ const styles = StyleSheet.create({
   lockText: { fontSize: 12, fontWeight: 'bold', color: '#64748B' },
 
   quizContainer: { flex: 1, backgroundColor: '#F8FAFC' },
-  quizHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 30, gap: 15 },
+  quizHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 10, paddingBottom: 10, gap: 15, backgroundColor: '#F8FAFC', zIndex: 10 },
   closeBtn: { padding: 4 },
   progressBar: { flex: 1, height: 6, backgroundColor: '#E2E8F0', borderRadius: 3, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: '#006eff', borderRadius: 3 },
   progressText: { fontSize: 14, fontWeight: 'bold', color: '#64748B' },
   
-  questionBox: { padding: 24, flex: 1 },
+  scrollQuizContent: { paddingHorizontal: 24, paddingBottom: 60 },
+  questionBox: { marginTop: 10 }, 
   questionText: { fontSize: 24, fontWeight: 'bold', marginBottom: 40, color: '#1E293B', lineHeight: 32 },
+  
   optionBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 20, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: '#E2E8F0', shadowColor: "#000", shadowOpacity: 0.02, shadowRadius: 5, elevation: 1 },
   radioOuter: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#CBD5E1', marginRight: 15, justifyContent: 'center', alignItems: 'center' },
   radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: 'transparent' }, 
