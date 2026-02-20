@@ -1,18 +1,22 @@
-import { Router, Response } from "express";
-import  prisma  from "../prisma"; 
-import { authMiddleware, AuthRequest } from "../middleware/authMiddleware";
+import { Router, Request, Response } from "express";
+import prisma from "../prisma"; 
+import { authMiddleware } from "../middleware/authMiddleware";
+import { ActivityService } from "../services/ActivityService";
 
 const router = Router();
+router.use(authMiddleware);
 
-//LISTAR TODOS OS POSTS (FEED) ---
-router.get("/", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const { limit, page } = req.query;
-  const userId = req.user?.id;
-
-  const take = limit ? Number(limit) : undefined;
-  const skip = page && limit ? (Number(page) - 1) * Number(limit) : undefined;
-
+// ==========================================
+// LISTAR ATIVIDADES (Com paginação e status)
+// ==========================================
+router.get("/", async (req: Request, res: Response): Promise<void> => {
   try {
+    const userId = req.user!.id;
+    const { limit = "10", page = "1" } = req.query;
+    
+    const take = Number(limit);
+    const skip = (Number(page) - 1) * take;
+
     const [posts, total] = await prisma.$transaction([
       prisma.post.findMany({
         take,
@@ -20,11 +24,10 @@ router.get("/", authMiddleware, async (req: AuthRequest, res: Response) => {
         orderBy: { createdAt: "desc" },
         include: {
           author: { select: { name: true } },
-          _count: { select: { likes: true, comments: true } },
           quizAttempts: {
-            where: { userId: userId },
+            where: { userId },
             take: 1,
-            select: { id: true, score: true }
+            select: { score: true }
           }
         }
       }),
@@ -32,25 +35,32 @@ router.get("/", authMiddleware, async (req: AuthRequest, res: Response) => {
     ]);
 
     const formattedPosts = posts.map(post => ({
-        ...post,
-        authorName: post.author.name, 
-        completed: post.quizAttempts.length > 0,
-        lastScore: post.quizAttempts.length > 0 ? post.quizAttempts[0].score : null
+      ...post,
+      authorName: post.author.name, 
+      completed: post.quizAttempts.length > 0,
+      lastScore: post.quizAttempts.length > 0 ? post.quizAttempts[0].score : null
     }));
 
     res.json({ data: formattedPosts, total });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erro ao buscar posts" });
+    console.error("Erro ao listar atividades:", error);
+    res.status(500).json({ error: "Erro ao buscar atividades." });
   }
 });
 
-//CRIAR NOVO POST (COM QUIZ) ---
-router.post("/", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const { title, content, questions } = req.body;
-  const userId = req.user!.id;
-
+// ==========================================
+// CRIAR NOVA ATIVIDADE (Apenas Professor/Admin)
+// ==========================================
+router.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
+    const { title, content, questions } = req.body;
+    const { id: userId, role: userRole } = req.user!;
+
+    if (userRole !== "professor" && userRole !== "admin") {
+      res.status(403).json({ error: "Acesso negado. Apenas professores podem criar conteúdos." });
+      return;
+    }
+
     const newPost = await prisma.post.create({
       data: {
         title,
@@ -72,177 +82,120 @@ router.post("/", authMiddleware, async (req: AuthRequest, res: Response) => {
 
     res.status(201).json(newPost);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erro ao criar post" });
+    console.error("Erro ao criar atividade:", error);
+    res.status(500).json({ error: "Erro interno ao salvar atividade." });
   }
 });
 
-//DETALHES DO POST (AULA + QUIZ + RECOMPENSAS) ---
-router.get("/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const id = Number(req.params.id);
-  const userId = req.user?.id;
-
+// ==========================================
+// DETALHES DA ATIVIDADE (Comrecompensas)
+// ==========================================
+router.get("/:id", async (req: Request, res: Response): Promise<void> => {
   try {
+    const postId = Number(req.params.id);
+    const userId = req.user!.id;
+
     const post = await prisma.post.findUnique({
-      where: { id },
+      where: { id: postId },
       include: {
         author: { select: { name: true } },
         questions: { 
-            include: { 
-                options: { select: { id: true, text: true, isCorrect: true } } 
-            } 
+          include: { 
+            options: { select: { id: true, text: true, isCorrect: true } } 
+          } 
         },
         quizAttempts: { 
-            where: { userId: userId },
-            orderBy: { createdAt: 'asc' }
+          where: { userId },
+          orderBy: { createdAt: 'asc' }
         },
-        _count: { select: { likes: true, comments: true } }
       }
     });
 
-    if (!post) return res.status(404).json({ error: "Post não encontrado" });
+    if (!post) {
+      res.status(404).json({ error: "Atividade não encontrada." });
+      return;
+    }
 
     let pendingReward = null;
     let bestScoreSoFar = 0;
 
     for (const attempt of post.quizAttempts) {
-        if (attempt.score > bestScoreSoFar) {
-            const diff = attempt.score - bestScoreSoFar;
-            
-            if (!attempt.rewardClaimed) {
-                pendingReward = {
-                    attemptId: attempt.id,
-                    potentialXp: diff * 50,
-                    potentialCoins: diff * 10
-                };
-            }
-            bestScoreSoFar = attempt.score;
+      if (attempt.score > bestScoreSoFar) {
+        const diff = attempt.score - bestScoreSoFar;
+        if (!attempt.rewardClaimed) {
+          pendingReward = {
+            attemptId: attempt.id,
+            potentialXp: diff * 50,
+            potentialCoins: diff * 10
+          };
         }
+        bestScoreSoFar = attempt.score;
+      }
     }
 
-    const responseData = {
-        ...post,
-        authorName: post.author.name,
-        quizAttempts: undefined, 
-        attemptsCount: post.quizAttempts.length, 
-        bestScore: bestScoreSoFar,
-        maxAttempts: 2,
-        unclaimedReward: pendingReward 
-    };
-
-    return res.json(responseData);
-
+    res.json({
+      ...post,
+      authorName: post.author.name,
+      quizAttempts: undefined, 
+      attemptsCount: post.quizAttempts.length, 
+      bestScore: bestScoreSoFar,
+      maxAttempts: 2,
+      unclaimedReward: pendingReward 
+    });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: "Erro ao buscar detalhes" });
+    console.error("Erro ao buscar detalhes:", error);
+    res.status(500).json({ error: "Erro ao processar detalhes da atividade." });
   }
 });
 
-//FINALIZAR ATIVIDADE ---
-router.post("/:id/finish", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const postId = Number(req.params.id);
-  const userId = req.user!.id;
-  const { score } = req.body;
-
+// ==========================================
+// FINALIZAR ATIVIDADE (Usa o ActivityService)
+// ==========================================
+router.post("/:id/finish", async (req: Request, res: Response): Promise<void> => {
   try {
-    const previousAttempts = await prisma.quizAttempt.findMany({
-        where: { userId, postId },
-        orderBy: { score: 'desc' }
-    });
-
-    if (previousAttempts.length >= 2) {
-        return res.status(403).json({ error: "Limite de tentativas atingido." });
-    }
-
-    const previousBestScore = previousAttempts.length > 0 ? previousAttempts[0].score : 0;
-    const totalQuestions = await prisma.question.count({ where: { postId } });
-    
-    if (previousBestScore === totalQuestions) {
-        return res.status(403).json({ error: "Atividade já concluída com nota máxima!" });
-    }
-
-    let scoreDifference = 0;
-    if (score > previousBestScore) {
-        scoreDifference = score - previousBestScore;
-    }
-
-    const xpEarned = scoreDifference * 50;
-    const coinsEarned = scoreDifference * 10;
-
-    //Salva tentativa e atualiza User (se houver ganho)
-    const result = await prisma.$transaction(async (tx) => {
-        await tx.quizAttempt.create({
-            data: { 
-                userId, 
-                postId, 
-                score, 
-                rewardClaimed: true 
-            }
-        });
-
-        const user = await tx.user.findUnique({ where: { id: userId } });
-        let newLevel = user!.nivel;
-        let leveledUp = false;
-
-        if (xpEarned > 0) {
-            const currentXp = user!.xp + xpEarned;
-            newLevel = Math.floor(currentXp / 500) + 1;
-            leveledUp = newLevel > user!.nivel;
-
-            await tx.user.update({
-                where: { id: userId },
-                data: { 
-                    xp: currentXp, 
-                    moedas: user!.moedas + coinsEarned,
-                    nivel: newLevel
-                }
-            });
-        }
-
-        return {
-            xpEarned,
-            coinsEarned,
-            leveledUp,
-            newLevel,
-            attemptsCount: previousAttempts.length + 1
-        };
-    });
-
+    const result = await ActivityService.finishActivity(
+      req.user!.id, 
+      Number(req.params.id), 
+      Number(req.body.score)
+    );
     res.json(result);
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erro ao finalizar atividade" });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || "Erro ao finalizar atividade." });
   }
 });
 
-//DELETAR POST ---
-router.delete("/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
-    const id = Number(req.params.id);
-    const userId = req.user!.id;
-    const userRole = req.user!.role;
+// ==========================================
+// DELETAR ATIVIDADE
+// ==========================================
+router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const postId = Number(req.params.id);
+    const { id: userId, role: userRole } = req.user!;
 
-    try {
-        const post = await prisma.post.findUnique({ 
-            where: { id },
-            include: { author: { select: { name: true } } }
-        });
-        
-        if (!post) return res.status(404).json({ error: "Post não encontrado" });
-
-        // Validação: Só Dono ou Admin pode deletar
-        if (post.authorId !== userId && userRole !== 'admin') {
-            return res.status(403).json({ 
-                error: `Esta atividade pertence ao Prof. ${post.author.name} e não pode ser excluída por você.` 
-            });
-        }
-
-        await prisma.post.delete({ where: { id } });
-        res.json({ message: "Post deletado com sucesso" });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Erro ao deletar post" });
+    const post = await prisma.post.findUnique({ 
+      where: { id: postId },
+      select: { authorId: true, author: { select: { name: true } } }
+    });
+    
+    if (!post) {
+      res.status(404).json({ error: "Atividade não encontrada." });
+      return;
     }
+
+    //Apenas o autor ou um administrador pode deletar
+    if (post.authorId !== userId && userRole !== 'admin') {
+      res.status(403).json({ 
+        error: `Permissão negada. Esta atividade pertence ao Prof. ${post.author.name}.` 
+      });
+      return;
+    }
+
+    await prisma.post.delete({ where: { id: postId } });
+    res.json({ message: "Atividade removida com sucesso." });
+  } catch (error) {
+    console.error("Erro ao deletar:", error);
+    res.status(500).json({ error: "Erro interno ao excluir atividade." });
+  }
 });
 
 export default router;

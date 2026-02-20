@@ -1,123 +1,102 @@
-import { Router, Response } from "express";
-import prisma from "../prisma"; // Ajuste o caminho se seu arquivo prisma estiver em outro lugar
-import { authMiddleware, AuthRequest } from "../middleware/authMiddleware"; 
+import { Router, Request, Response } from "express";
+import { authMiddleware } from "../middleware/authMiddleware";
+import { UserService } from "../services/UserService";
 
 const router = Router();
+router.use(authMiddleware);
 
-//LISTAR USUÁRIOS ---
-router.get("/", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 10;
-  const skip = (page - 1) * limit;
-
+// ==========================================
+// LISTAR USUÁRIOS
+// ==========================================
+router.get("/", async (req: Request, res: Response): Promise<void> => {
   try {
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
-        skip,
-        take: limit,
-        select: { 
-            id: true, 
-            name: true, 
-            email: true, 
-            role: true, 
-            xp: true, 
-            nivel: true,
-            moedas: true
-        }, 
-      }),
-      prisma.user.count(),
-    ]);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
 
-    res.json({
-      page,
-      limit,
-      total,
-      data: users,
-    });
+    const { users, total } = await UserService.listUsers(page, limit);
+
+    res.json({ page, limit, total, data: users });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erro ao buscar usuários" });
+    res.status(500).json({ error: "Erro ao buscar usuários." });
   }
 });
 
-//OBTER PERFIL ÚNICO (XP, MOEDAS, NÍVEL) ---
-router.get("/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const userId = Number(req.params.id);
-  const requesterId = req.user?.id;
-
-  if (userId !== requesterId && req.user?.role !== 'professor' && req.user?.role !== 'admin') { 
-    return res.status(403).json({ error: "Acesso negado." });
-  }
-
+// ==========================================
+// PERFIL
+// ==========================================
+router.get("/:id", async (req: Request, res: Response): Promise<void> => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        xp: true,     
-        moedas: true, 
-        nivel: true    
-      }
-    });
+    const userId = Number(req.params.id);
+    const requester = req.user!;
 
-    if (!user) {
-      return res.status(404).json({ error: "Usuário não encontrado." });
+    // Regra: Próprio usuário ou Educadores podem ver
+    if (userId !== requester.id && requester.role !== 'professor' && requester.role !== 'admin') { 
+      res.status(403).json({ error: "Acesso negado." });
+      return;
     }
 
-    return res.json(user);
+    const user = await UserService.getUserById(userId);
+    if (!user) {
+      res.status(404).json({ error: "Usuário não encontrado." });
+      return;
+    }
+
+    res.json(user);
   } catch (error) {
-    console.error("Erro ao buscar usuário:", error);
-    return res.status(500).json({ error: "Erro interno no servidor." });
+    res.status(500).json({ error: "Erro ao buscar perfil." });
   }
 });
 
-//ATUALIZAR USUÁRIO ---
-router.put("/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
-  const { name, email, role } = req.body;
-
-  // Verificar se quem está editando é o próprio usuário ou Admin
-  if (Number(id) !== req.user?.id && req.user?.role !== 'admin') {
-      return res.status(403).json({ error: "Sem permissão para editar este usuário." });
-  }
-
+// ==========================================
+// ATUALIZAR USUÁRIO
+// ==========================================
+router.put("/:id", async (req: Request, res: Response): Promise<void> => {
   try {
-    const user = await prisma.user.update({
-      where: { id: Number(id) },
-      data: { name, email, role },
-      select: { id: true, name: true, email: true, role: true },
+    const targetId = Number(req.params.id);
+    const { name, email, role } = req.body;
+    const requester = req.user!;
+
+    if (targetId !== requester.id && requester.role !== 'admin') {
+      res.status(403).json({ error: "Sem permissão para editar." });
+      return;
+    }
+
+    const safeRole = (role && requester.role === 'admin') ? role : undefined;
+
+    const user = await UserService.updateUser(targetId, {
+      name,
+      email: email?.toLowerCase(),
+      role: safeRole
     });
 
     res.json(user);
   } catch (error) {
-    res.status(404).json({ error: "Usuário não encontrado ou erro na atualização" });
+    res.status(404).json({ error: "Erro na atualização." });
   }
 });
 
-//DELETAR USUÁRIO ---
-router.delete("/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
-  const targetId = Number(id);
-  const requesterId = req.user?.id;
-
-  //Validar Permissão de Admin/Professor
-  if (req.user?.role !== 'admin' && req.user?.role !== 'professor') {
-      return res.status(403).json({ error: "Permissão negada." });
-  }
-
-  // Impedir auto-exclusão
-  if (targetId === requesterId) {
-      return res.status(403).json({ error: "Você não pode excluir sua própria conta!" });
-  }
-
+// ==========================================
+// DELETAR USUÁRIO
+// ==========================================
+router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
   try {
-    await prisma.user.delete({ where: { id: targetId } });
-    res.json({ message: "Usuário deletado com sucesso" });
+    const targetId = Number(req.params.id);
+    const requester = req.user!;
+
+    if (requester.role !== 'admin' && requester.role !== 'professor') {
+      res.status(403).json({ error: "Permissão negada." });
+      return;
+    }
+
+    if (targetId === requester.id) {
+      res.status(403).json({ error: "Você não pode se auto-excluir!" });
+      return;
+    }
+
+    await UserService.deleteUser(targetId);
+    res.json({ message: "Usuário removido com sucesso." });
   } catch (error) {
-    res.status(404).json({ error: "Usuário não encontrado" });
+    res.status(404).json({ error: "Usuário não encontrado." });
   }
 });
 

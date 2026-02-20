@@ -2,7 +2,7 @@ import { Router } from "express";
 
 const router = Router();
 
-// Banco de Dados Mockado da BNCC
+// Banco de Dados da BNCC
 const BNCC_DATABASE = [
   // --- MATEMÁTICA ---
   {
@@ -13,16 +13,16 @@ const BNCC_DATABASE = [
     topic: "Funções",
     bnccCode: "EM13MAT302",
     title: "Função Afim: O Caso do Uber",
-    content: `📌 CONCEITO
+    content: `CONCEITO
 A Função Afim (Função do 1º Grau) modela situações com um valor fixo e uma taxa de variação constante.
 
-📝 FÓRMULA
+ FÓRMULA
 f(x) = ax + b
 • a: Taxa de variação (R$ por km).
 • b: Valor fixo inicial (Bandeirada).
 • x: Variável (Km rodados).
 
-💡 EXEMPLO (UBER)
+ EXEMPLO (UBER)
 Preço = 2x + 5
 - R$ 5,00 para entrar no carro.
 - R$ 2,00 a cada km rodado.`,
@@ -42,15 +42,15 @@ Preço = 2x + 5
     topic: "Geometria Espacial",
     bnccCode: "EM13MAT201",
     title: "Volume de Prismas: Caixas e Piscinas",
-    content: `📌 CONCEITO
+    content: `CONCEITO
 O volume de um prisma é o espaço interno dele. É calculado multiplicando a área do chão (base) pela altura da parede.
 
-📝 FÓRMULA
+ FÓRMULA
 V = Ab • h
 • Ab: Área da Base.
 • h: Altura.
 
-💡 DICA
+ DICA
 1 m³ (metro cúbico) = 1000 Litros.`,
     questions: [
         { text: "Qual a fórmula geral do volume do prisma?", options: [{ text: "V = Área da Base x Altura", isCorrect: true }, { text: "V = Base x Altura / 2", isCorrect: false }, { text: "V = Lado x Lado", isCorrect: false }, { text: "V = 2 x Pi x Raio", isCorrect: false }] },
@@ -70,10 +70,10 @@ V = Ab • h
     topic: "Cinemática",
     bnccCode: "EM13CNT101",
     title: "Velocidade Média",
-    content: `📌 CONCEITO
+    content: `CONCEITO
 Velocidade Média (Vm) considera todo o percurso e todo o tempo gasto, incluindo paradas.
 
-📝 FÓRMULA
+ FÓRMULA
 Vm = ΔS / Δt
 • ΔS: Distância percorrida.
 • Δt: Tempo total gasto.`,
@@ -93,10 +93,10 @@ Vm = ΔS / Δt
     topic: "Eletricidade",
     bnccCode: "EM13CNT103",
     title: "1ª Lei de Ohm: Tensão e Corrente",
-    content: `📌 CONCEITO
+    content: `CONCEITO
 Relaciona Tensão (Força), Corrente (Fluxo) e Resistência (Dificuldade).
 
-📝 FÓRMULA
+ FÓRMULA
 U = R • i
 • U: Tensão (Volts).
 • R: Resistência (Ohms).
@@ -119,10 +119,10 @@ U = R • i
     topic: "Modelos Atômicos",
     bnccCode: "EM13CNT201",
     title: "O Átomo de Bohr",
-    content: `📌 CONCEITO
+    content: `CONCEITO
 Bohr propôs que os elétrons giram em camadas de energia específicas ao redor do núcleo.
 
-💡 SALTO QUÂNTICO
+ SALTO QUÂNTICO
 Quando um elétron ganha energia, ele pula para fora. Quando volta, emite LUZ (fóton). É assim que funcionam os fogos de artifício.`,
     questions: [
         { text: "Onde ficam os prótons no modelo de Bohr?", options: [{ text: "No Núcleo", isCorrect: true }, { text: "Na Eletrosfera", isCorrect: false }, { text: "Girando ao redor", isCorrect: false }, { text: "Não existem prótons", isCorrect: false }] },
@@ -142,7 +142,7 @@ Quando um elétron ganha energia, ele pula para fora. Quando volta, emite LUZ (f
     topic: "Citologia",
     bnccCode: "EM13CNT202",
     title: "A Célula e suas Organelas",
-    content: `📌 CONCEITO
+    content: `CONCEITO
 A célula funciona como uma cidade.
 • Núcleo: Prefeitura (DNA).
 • Membrana: Muro com portões.
@@ -166,10 +166,10 @@ A célula funciona como uma cidade.
     topic: "Guerra Fria",
     bnccCode: "EM13CHS103",
     title: "Guerra Fria: EUA vs URSS",
-    content: `📌 CONCEITO
+    content: `CONCEITO
 Conflito ideológico indireto entre Capitalismo (EUA) e Socialismo (URSS).
 
-🚀 DESTAQUES
+DESTAQUES
 • Corrida Espacial (Lua vs Satélites).
 • Muro de Berlim (Símbolo da divisão).
 • Medo Nuclear (Ninguém atirava direto).`,
@@ -191,14 +191,14 @@ Conflito ideológico indireto entre Capitalismo (EUA) e Socialismo (URSS).
     topic: "Geopolítica",
     bnccCode: "EM13CHS202",
     title: "Globalização",
-    content: `📌 CONCEITO
+    content: `CONCEITO
 Integração mundial econômica e cultural.
 
-🌍 MOTORES
+ MOTORES
 • Transportes rápidos e baratos.
 • Internet e Telecomunicações.
 
-💡 EXEMPLO
+ EXEMPLO
 Um tênis desenhado nos EUA, couro da Argentina, montado no Vietnã e vendido no Brasil.`,
     questions: [
         { text: "Qual fator foi essencial para a Globalização acelerar?", options: [{ text: "Avanço da Internet e Transportes", isCorrect: true }, { text: "A descoberta do fogo", isCorrect: false }, { text: "O isolamento dos países", isCorrect: false }, { text: "A queda da bolsa", isCorrect: false }] },
@@ -218,10 +218,10 @@ Um tênis desenhado nos EUA, couro da Argentina, montado no Vietnã e vendido no
     topic: "Dissertação",
     bnccCode: "EM13LP05",
     title: "Redação ENEM: Estrutura",
-    content: `📌 ESTRUTURA
+    content: `ESTRUTURA
 Texto Dissertativo-Argumentativo (Opinião + Fatos).
 
-🏗️ PARTES
+PARTES
 1. Introdução: Tese (Sua opinião).
 2. Desenvolvimento: Argumentos (Porquê).
 3. Conclusão: Proposta de Intervenção (Solução prática).`,

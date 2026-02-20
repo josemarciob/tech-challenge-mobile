@@ -1,36 +1,19 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage"; 
 import { api, setAuthToken } from "../services/api";
-import { jwtDecode } from "jwt-decode";
 
-export type Role = "aluno" | "professor";
+export type Role = "student" | "professor";
 
 export interface User {
-  id: string;
+  id: number; 
   name: string;
   email: string;
   role: Role;
   xp: number;
-  nivel: number;
-  moedas: number;
-  conquistas: string[];
-  atividades: any[];
-}
-
-interface TokenPayload {
-  id: number;
-  role: string;
-  name: string;
-  email?: string;
-  xp?: number;
-  nivel?: number;
-  moedas?: number;
-  conquistas?: string[];
-  atividades: any[];
+  level: number;           
+  coins: number;               
+  completedActivities: number; 
+  maxStorage: number;
 }
 
 interface AuthContextType {
@@ -38,7 +21,8 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => void; 
+  updateUser: (data: Partial<User>) => void; 
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -46,57 +30,80 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true); // 🔥 começa carregando
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function restoreSession() {
+    async function loadStoredData() {
       try {
-        // AsyncStorage no futuro
+        const [storedUser, storedToken] = await Promise.all([
+          AsyncStorage.getItem("@TechChallenge:user"),
+          AsyncStorage.getItem("@TechChallenge:token"),
+        ]);
+
+        if (storedUser && storedToken) {
+          setUser(JSON.parse(storedUser));
+          setToken(storedToken);
+          setAuthToken(storedToken);
+        }
       } catch (e) {
-        console.warn("Erro ao restaurar sessão:", e);
+        console.error("Erro ao carregar dados salvos:", e);
       } finally {
         setLoading(false);
       }
     }
 
-    restoreSession();
+    loadStoredData();
   }, []);
 
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const { data } = await api.post("/auth/login", { email, password });
-
-      const token = data.token;
-      setToken(token);
-      setAuthToken(token);
-
-      const decoded = jwtDecode<TokenPayload>(token);
-
-      setUser({
-        id: String(decoded.id),
-        name: decoded.name,
-        email: decoded.email || "",
-        role: decoded.role.toLowerCase() as Role,
-        xp: decoded.xp ?? 0,
-        nivel: decoded.nivel ?? 1,
-        moedas: decoded.moedas ?? 0,
-        conquistas: decoded.conquistas ?? [],
-        atividades: [],
+      const { data } = await api.post("/auth/login", { 
+        email: email.trim().toLowerCase(), 
+        password: password.trim() 
       });
+
+      const { token: apiToken, user: apiUser } = data;
+
+      setToken(apiToken);
+      setUser(apiUser);
+      setAuthToken(apiToken); 
+
+      await Promise.all([
+        AsyncStorage.setItem("@TechChallenge:user", JSON.stringify(apiUser)),
+        AsyncStorage.setItem("@TechChallenge:token", apiToken),
+      ]);
+      
+    } catch (error) {
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     setUser(null);
     setToken(null);
-    setAuthToken(undefined);
+    setAuthToken(undefined); 
+    await AsyncStorage.multiRemove([
+      "@TechChallenge:user",
+      "@TechChallenge:token"
+    ]);
+  };
+
+  const updateUser = async (newData: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updatedUser = { ...prev, ...newData };
+      
+      AsyncStorage.setItem("@TechChallenge:user", JSON.stringify(updatedUser));
+      
+      return updatedUser;
+    });
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
@@ -104,8 +111,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error("useAuth deve estar dentro de AuthProvider");
-  }
+  if (!ctx) throw new Error("useAuth deve ser usado dentro de um AuthProvider");
   return ctx;
 };

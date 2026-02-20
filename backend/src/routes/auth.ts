@@ -1,106 +1,113 @@
-import { Router } from "express";
-import bcrypt from "bcryptjs"; // Alterado para bcryptjs (mais compatível)
+import { Router, Request, Response } from "express";
+import bcrypt from "bcryptjs"; 
 import jwt from "jsonwebtoken";
-import prisma  from "../prisma"; // Caminho correto do cliente Prisma
+import { PrismaClient } from "@prisma/client";
 
 const router = Router();
-const SECRET = process.env.JWT_SECRET || "segredo_temporario_para_debug";
+const prisma = new PrismaClient();
 
-//  ROTA DE CADASTRO 
-router.post("/register", async (req, res) => {
+// ==========================================
+// CONFIGURAÇÕES DE SEGURANÇA
+// ==========================================
+const JWT_SECRET = process.env.JWT_SECRET || "segredo_temporario_para_debug";
+const PROFESSOR_SECRET = process.env.PROFESSOR_SECRET || "123";
+
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET não definido no ambiente de produção!");
+}
+
+const generateToken = (user: { id: number; role: string; name: string }) => {
+  return jwt.sign(
+    { id: user.id, role: user.role, name: user.name },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+};
+
+// ==========================================
+// ROTA DE CADASTRO
+// ==========================================
+router.post("/register", async (req: Request, res: Response): Promise<void> => {
   try {
-    let { name, email, password, role, secretKey } = req.body;
+    const { name, email, password, role, secretKey } = req.body;
 
-    // Validação básica
     if (!name || !email || !password) {
-      return res.status(400).json({ error: "Nome, email e senha são obrigatórios." });
+      res.status(400).json({ error: "Nome, e-mail e senha são obrigatórios." });
+      return;
     }
 
-    // Se não vier role, assume 'student'. O banco espera 'student' ou 'professor'.
-    if (!role || role === "estudante" || role === "aluno") {
-        role = "student";
-    }
+    const cleanEmail = email.trim().toLowerCase();
 
-    // Validação de Professor
+    // Validação de Role
+    let normalizedRole = "student";
     if (role === "professor") {
-      const PROFESSOR_SECRET = "123"; // Defina isso no .env em produção
       if (secretKey !== PROFESSOR_SECRET) {
-        return res.status(403).json({ error: "Chave de acesso de professor inválida." });
+        res.status(403).json({ error: "Chave de acesso de professor inválida." });
+        return;
       }
+      normalizedRole = "professor";
     }
 
-    // Verificar se usuário já existe
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findUnique({ where: { email: cleanEmail } });
     if (existingUser) {
-        return res.status(409).json({ error: "Este e-mail já está em uso." });
+      res.status(409).json({ error: "Este e-mail já está em uso." });
+      return;
     }
 
-    // Criptografar senha
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password.trim(), 10);
 
-    // Criar Usuário
     const user = await prisma.user.create({
       data: { 
-        name, 
-        email, 
+        name: name.trim(), 
+        email: cleanEmail, 
         password: hashedPassword, 
-        role,
-        // Valores iniciais de gamificação
+        role: normalizedRole,
         xp: 0,
-        moedas: 0,
-        nivel: 1
+        coins: 1000, 
+        level: 1,
+        completedActivities: 0 
       }
     });
 
-    // Gerar Token (Para login automático)
-    const token = jwt.sign(
-      { id: user.id, role: user.role, name: user.name },
-      SECRET,
-      { expiresIn: "7d" } // Token dura 7 dias
-    );
+    const token = generateToken(user);
+    
+    const { password: _, ...safeUser } = user; 
 
-    // Remove a senha do retorno
-    const { password: _, ...safeUser } = user;
-
-    // Retorna User + Token
-    return res.status(201).json({ user: safeUser, token });
-
+    res.status(201).json({ user: safeUser, token });
   } catch (error) {
     console.error("Erro no registro:", error);
-    return res.status(500).json({ error: "Erro interno ao criar conta." });
+    res.status(500).json({ error: "Erro interno ao criar conta." });
   }
 });
 
-// --- ROTA DE LOGIN ---
-router.post("/login", async (req, res) => {
+// ==========================================
+// ROTA DE LOGIN
+// ==========================================
+router.post("/login", async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-        return res.status(400).json({ error: "E-mail e senha obrigatórios." });
+      res.status(400).json({ error: "E-mail e senha são obrigatórios." });
+      return;
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
 
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) return res.status(401).json({ error: "Senha incorreta." });
+    if (!user || !(await bcrypt.compare(password.trim(), user.password))) {
+      res.status(401).json({ error: "E-mail ou senha incorretos." });
+      return;
+    }
 
-    // Inclui id, role e name no token
-    const token = jwt.sign(
-      { id: user.id, role: user.role, name: user.name },
-      SECRET,
-      { expiresIn: "7d" }
-    );
+    const token = generateToken(user);
 
-    // Remove a senha do retorno
-    const { password: _, ...safeUser } = user;
+    const { password: _, ...safeUser } = user; 
 
-    return res.json({ user: safeUser, token });
-
+    res.json({ user: safeUser, token });
   } catch (error) {
     console.error("Erro no login:", error);
-    return res.status(500).json({ error: "Erro interno no servidor." });
+    res.status(500).json({ error: "Erro interno no servidor." });
   }
 });
 

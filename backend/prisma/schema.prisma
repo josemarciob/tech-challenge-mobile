@@ -7,42 +7,108 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// =========================================================
+// USER
+// =========================================================
+
 model User {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   name      String
-  email     String   @unique
+  email     String    @unique
   password  String
-  role      String   @default("student") // 'student', 'professor', 'admin'
+  role      String    @default("student")
 
-  xp        Int      @default(0)
-  moedas    Int      @default(0)
-  nivel     Int      @default(1)
+  xp        Int       @default(0)
+  coins     Int       @default(0)
+  level     Int       @default(1)
+  maxStorage Int      @default(30)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  completedActivities Int @default(0)
 
-  posts         Post[]        @relation("UserPosts")
-  quizAttempts  QuizAttempt[]
-  likes         Like[]
-  comments      Comment[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  posts        Post[]        @relation("UserPosts")
+  quizAttempts QuizAttempt[]
+  farmItems    UserFarmItem[]
+  resources    UserResource[]
 }
 
+// =========================================================
+// FARM
+// =========================================================
+
+model StoreItem {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+  price       Int       
+  sellPrice   Int       
+
+  category    String    // plant, animal, building, decoration, consumable
+  icon        String    
+
+  // ProdçÃo e TEmpo
+  produces       String? 
+  productionRate Int?    
+  growthTime     Int?    
+
+  unlockLevel Int  @default(1) 
+  maxQuantity Int?             
+
+  requiredActivities Int @default(0)
+  requiresBuildingId Int?
+  requiredBuilding   StoreItem?  @relation("BuildingDependency", fields: [requiresBuildingId], references: [id])
+  dependentItems     StoreItem[] @relation("BuildingDependency")
+
+  inventoryInstances UserResource[]
+  farmInstances      UserFarmItem[]
+}
+
+model UserFarmItem {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id])
+
+  itemId    Int
+  item      StoreItem @relation(fields: [itemId], references: [id])
+
+  createdAt DateTime  @default(now())
+  lastFed   DateTime? 
+
+  level     Int       @default(1) 
+}
+
+model UserResource {
+  id       Int       @id @default(autoincrement())
+  userId   Int
+  user     User      @relation(fields: [userId], references: [id])
+
+  itemId   Int
+  item     StoreItem @relation(fields: [itemId], references: [id])
+
+  quantity Int       @default(0)
+
+  @@unique([userId, itemId])
+}
+
+// =========================================================
+// ATIVIDADES & QUIZZES
+// =========================================================
+
 model Post {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   title     String
-  content   String   
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  content   String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   authorId  Int
-  author    User     @relation("UserPosts", fields: [authorId], references: [id])
+  author    User      @relation("UserPosts", fields: [authorId], references: [id])
 
-  questions    Question[]    
-  quizAttempts QuizAttempt[] 
-
-  likes        Like[]        
-  comments     Comment[]     
+  questions    Question[]
+  quizAttempts QuizAttempt[]
 }
 
 model Question {
@@ -50,7 +116,7 @@ model Question {
   text    String
   postId  Int
   post    Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  
+
   options Option[]
 }
 
@@ -58,45 +124,21 @@ model Option {
   id         Int      @id @default(autoincrement())
   text       String
   isCorrect  Boolean  @default(false)
-  
+
   questionId Int
   question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 }
 
 model QuizAttempt {
   id            Int      @id @default(autoincrement())
-  score         Int      
-  
-  rewardClaimed Boolean  @default(false) 
-  
+  score         Int
+  rewardClaimed Boolean  @default(false)
+
   createdAt     DateTime @default(now())
 
-  userId Int
-  user   User @relation(fields: [userId], references: [id])
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
 
-  postId Int
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-}
-
-model Like {
-  id     Int  @id @default(autoincrement())
-  userId Int
-  postId Int
-  
-  user   User @relation(fields: [userId], references: [id])
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, postId])
-}
-
-model Comment {
-  id        Int      @id @default(autoincrement())
-  text      String
-  createdAt DateTime @default(now())
-  
-  userId    Int
-  postId    Int
-  
-  user      User     @relation(fields: [userId], references: [id])
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId        Int
+  post          Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
