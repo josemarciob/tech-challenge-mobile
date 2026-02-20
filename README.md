@@ -1,92 +1,128 @@
-# 📱 Tech Challenge Mobile
+# Tech Challenge Mobile - Hackathon FIAP
 
-Aplicativo mobile desenvolvido em **React Native (Expo)** para autenticação de usuários e gerenciamento de Atividades (CRUD).  
-Parte do desafio do curso **Postech FIAP**.
-
----
-
-## 🏗️ Arquitetura do Sistema
-
-O sistema é composto por duas camadas principais:
-
-- **Frontend (Mobile App)**  
-  - Desenvolvido em **React Native (Expo)**.  
-  - Gerencia autenticação de usuários (login, registro).  
-  - Permite CRUD de atividades (criar, listar, editar, excluir).  
-  - Interface diferenciada para **estudantes** e **professores**, com permissões específicas.  
-
-- **Backend (API Node.js/Express)**  
-  - Responsável por autenticação e persistência dos dados.  
-  - **Banco de Dados:** PostgreSQL (via Prisma ORM).
-  - Mantém usuários e atividades em memória (simulação de banco de dados).  
-  - Endpoints REST para login, registro, gerenciamento de atividades e quiz.  
-  - Validação de roles (`estudante` e `professor`) com chave secreta para professores.  
-
-## Fluxo simplificado:
-
-Mobile App (React Native) <--> API REST (Node.js/Express)
+Aplicativo mobile desenvolvido em **React Native (Expo)** com backend em **Node.js**. A solução usa gamificação para aumentar o engajamento dos alunos através de uma "Fazenda Virtual".
 
 ---
 
-## 🚀 Instalação e Execução
+## 🎯 Visão Geral
 
-### Frontend
-1. Clone o repositório:
-   ```bash
-   git clone https://github.com/josemarciob/tech-challenge-mobile.git
-   cd tech-challenge-mobile
-   ```
+- **Professor:** Gestão de turmas, criação de atividades (quizzes) e métricas.
+- **Aluno:** Completar atividades para ganhar moedas/XP e desbloquear itens na fazenda.
 
-2. Instale as dependências:
+---
+
+## ✨ Funcionalidades Principais
+
+- **Sistema de níveis e XP**
+- **Fazenda:** Plantio, estruturas (celeiro, galinheiro), produção e coleta em tempo real.
+- **Mercado:** Compra/venda com travas por nível que necessita ter certas quantidades de atividades concluídas para desbloquear o recurso.
+
+---
+
+## 🏗️ Arquitetura e Tecnologias
+
+- Frontend: React Native (Expo), Moti, Reanimated, Phosphor Icons, Axios, Context API.
+- Backend: Node.js, Express, Prisma ORM, PostgreSQL, Bcrypt, JWT.
+
+---
+
+## 🚀 Como Rodar Localmente
+
+Pré-requisitos: `node`, `npm`, `git`, e um servidor PostgreSQL.
+
+### 1 Backend
+
+1. Entre na pasta do backend:
+
 ```bash
+cd backend
 npm install
 ```
 
-3. Inicie o projeto:
+2. Crie um arquivo `.env` na raiz de `backend` com as variáveis:
+
+```env
+
+NODE_ENV="development"
+PORT=3333
+
+DATABASE_URL="postgresql://postgres:admin@localhost:5432/techchallenge"
+JWT_SECRET="exemplo"
+
+# Senha exigida no App para alguém conseguir se cadastrar como Professor
+PROFESSOR_SECRET="exemplo"
+```
+
+3. Gere o Prisma Client, aplique o schema e execute a seed:
+
 ```bash
+npx prisma generate
+npx prisma db push
+npx prisma db seed
+```
+
+4. Inicie o servidor:
+
+```bash
+npm run dev
+# ou: npx ts-node src/server.ts (conforme script do package.json)
+```
+
+### 2 Frontend (Mobile)
+
+1. Na raiz do projeto (fora da pasta `backend`):
+
+```bash
+npm install
 npx expo start
 ```
 
-4. Escolha rodar no emulador Android/iOS ou no aplicativo Expo Go.
+2. Ajuste a URL da API em `src/services/api.ts` para o IP da sua máquina (ex.: `192.168.x.x`) e a porta usada pelo backend:
 
-### Backend
-No arquivo `src/services/api.ts`, ajuste a URL para o IP da sua máquina:
 ```typescript
 export const api = axios.create({
-  baseURL: '[http://192.168.](http://192.168.)X.X:3000' 
+  baseURL: 'http://192.168.X.X:3000'
 });
 ```
-Para iniciar o backend:
-```bash
-node server.js
+
+3. Abra o Expo Go no dispositivo ou use emulador.
+
+**Variáveis de ambiente (Frontend)**
+
+Crie um arquivo `.env` na raiz do projeto (frontend) para expor a URL da API e facilitar a configuração em diferentes redes. Substitua os valores pelo IP/porta do seu backend quando necessário:
+
+```env
+EXPO_PUBLIC_API_URL="http://192.168.x.x:xxxx/api"
+LAN_IP="192.168.x.x"
+PORT="xxxx"
 ```
 
-
-> ## 📲 Uso da Aplicação
->
-> ### Estudante
-> - Visualizar atividades disponíveis.
-> - Acessar perfil do estudante.
->
-> ### Professor
-> - Criar novas atividades.
-> - Listar todas as atividades.
-> - Gerenciar usuários.
-> - Acessar perfil do professor.
-
-## 🧩 Experiências e Desafios
-### Durante o desenvolvimento, a equipe enfrentou alguns pontos importantes:
-+ Consistência de roles: Foi necessário padronizar para "estudante" e "professor" em todo o sistema.
-+ Integração frontend-backend: ajustes na tipagem do AuthContext e nas telas para refletir corretamente os dados retornados pela API.
-+ Gerenciamento de estado: uso de Context API para manter usuário autenticado e simplificar navegação condicional.
-+ Organização dos commits: adoção de mensagens semânticas (feat, fix, refactor, chore) para manter o histórico limpo e rastreável.
-+ Divisão entre frontend, backend e documentação, com integração contínua no GitHub.
-
-Esses desafios ajudaram a consolidar boas práticas de desenvolvimento e reforçaram a importância da padronização.
+No código, você pode acessar `EXPO_PUBLIC_API_URL` via `process.env.EXPO_PUBLIC_API_URL` (Expo automático para variáveis `EXPO_PUBLIC_...`).
 
 ---
 
-### 👨‍💻 Autor
-Projeto desenvolvido por **José Márcio** como parte do **Tech Challenge da FIAP**.
+## 🔑 Credenciais de Teste (seed)
+
+- Professor Admin: `admin@escola.com` | Senha: `123456`
+- Aluno Teste: `aluno@escola.com` | Senha: `123456`
 
 ---
+
+## 🧩 Desafios e Aprendizados
+
+- Sincronização do tempo entre front e backend para evitar fraudes.
+- Resolução de loops infinitos relacionados ao `AuthContext` e `useFocusEffect`.
+- Modularização de telas complexas (ex.: Fazenda) em subcomponentes.
+- Modelagem relacional com dependências entre itens (Prisma).
+
+---
+
+## 👨‍💻 Autor
+
+Desenvolvido por José Márcio como solução do Hackathon da pós-graduação FIAP.
+
+---
+
+## Fluxo simplificado
+
+Mobile App (React Native) <--> API REST (Node.js/Express)
