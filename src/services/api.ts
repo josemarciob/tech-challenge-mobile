@@ -3,11 +3,10 @@ import axios from "axios";
 // ==========================================
 // CONFIGURAÇÕES DE REDE
 // ==========================================
-const LAN_IP = process.env.LAN_IP; 
-const PORT =  process.env.PORT; 
+const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.0.29:3333/api";
 
 const api = axios.create({
-  baseURL: `http://${LAN_IP}:${PORT}/api`,
+  baseURL: API_URL,
   timeout: 10000, 
 });
 

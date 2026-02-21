@@ -5,8 +5,8 @@ const prisma = new PrismaClient();
 // --- CONFIGURAÇÃO DO JOGO BASICO (Centralizada no Service) ---
 export const GAME_CONFIG = {
   IDS: {
-    EGG: 21, 
-    WHEAT_SACK: 22, 
+    EGG: 9, 
+    WHEAT_SACK: 10, 
   },
   REWARDS: {
     ANIMAL_XP: 5,
